@@ -13,7 +13,7 @@ const { createReadStream } = require('fs');
 
 // Initialize express
 const app = express();
-const PORT = 12345;
+const PORT = 8080;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -82,7 +82,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         const srtPath = path.join(uniqueFolder, 'subtitles.srt');
         generateSRT(transcripts, srtPath);
 
-        const imagePaths = (await Promise.all(imagePromises));
+        const imagePaths = await Promise.all(imagePromises);
         await createVideoFromImagesAndAudio(imagePaths, audioPaths, srtPath, outputVideo);
 
         const fileStream = createReadStream(outputVideo);
@@ -100,7 +100,6 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         res.status(500).json({
             message: "Failed to create storyboard",
         });
-        deleteFolder(uniqueFolder);
         console.error(err);
     }
 });

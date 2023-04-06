@@ -37,7 +37,8 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
     return new Promise((resolve, reject) => {
         // Ensure there are an equal number of images and audio files
         if (images.length !== audios.length) {
-            console.log(JSON.stringify(images))
+            console.error(JSON.stringify(images))
+            console.error(JSON.stringify(audios))
             reject('Number of images and audio files must be the same.');
         }
         let command = ffmpeg();

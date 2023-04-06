@@ -93,6 +93,7 @@ async function GenerateStoryboard(prompt) {
       if (error instanceof SyntaxError) {
         retries--; // Decrement the retry counter if a SyntaxError is thrown
         if (retries === 0) {
+          console.error('Failed openAI request ', error)
           throw new Error('All retries failed due to JSON parsing error');
         }
       } else {
