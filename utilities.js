@@ -70,7 +70,7 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
             filterStr += `[outv]subtitles=${path.normalize(relativePath).replace(/\\/g, '/')}[finalv]`;
         } else {
             // Linux-specific code
-            filterStr = `[outv]subtitles=${srtPath}[finalv]`;
+            filterStr += `[outv]subtitles=${srtPath}[finalv]`;
         }
 
         command
