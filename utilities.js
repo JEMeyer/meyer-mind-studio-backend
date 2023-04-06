@@ -3,8 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
-ffmpeg.setFfprobePath('/usr/bin/ffprobe');
+ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
+ffmpeg.setFfprobePath(process.env.FFPROBE_PATH);
+
+const os = require('os');
+const platform = os.platform();
 
 async function downloadFile(url, localPath) {
     const response = await axios({
@@ -59,10 +62,16 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
         }
         filterStr += `concat=n=${images.length}:v=1:a=1[outv][outa];`;
 
-        // Replace backslashes with forward slashes in the SRT path
-
-        // Add the subtitles filter to the complex filter graph
-        filterStr += `[outv]subtitles=${srtPath}[finalv]`;
+        if (platform === 'win32') {
+            // Windows-specific code
+            const tempDirPath = path.normalize(`${process.cwd()}/temp`).replace(/\\/g, '/');
+            const relativePath = path.relative(path.dirname(tempDirPath), srtPath);
+            // Add the subtitles filter to the complex filter graph
+            filterStr += `[outv]subtitles=${path.normalize(relativePath).replace(/\\/g, '/')}[finalv]`;
+        } else {
+            // Linux-specific code
+            filterStr = `[outv]subtitles=${srtPath}[finalv]`;
+        }
 
         command
             .complexFilter(filterStr)
