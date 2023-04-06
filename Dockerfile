@@ -1,5 +1,5 @@
 # Use the official Node.js image as the base image
-FROM node:14
+FROM node:bullseye
 
 # Set the working directory inside the container
 WORKDIR /usr/src/app
@@ -8,7 +8,12 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install the application dependencies
-RUN npm install
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    npm install -g npm@9.6.4 && \
+    npm install
 
 RUN npm install -g pm2
 

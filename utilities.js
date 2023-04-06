@@ -2,12 +2,9 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffprobePath = require("@ffprobe-installer/ffprobe").path;
-
 const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
+ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+ffmpeg.setFfprobePath('/usr/bin/ffprobe');
 
 async function downloadFile(url, localPath) {
     const response = await axios({
@@ -63,11 +60,9 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
         filterStr += `concat=n=${images.length}:v=1:a=1[outv][outa];`;
 
         // Replace backslashes with forward slashes in the SRT path
-        const tempDirPath = 'C:/Users/Joe/Projects/prompt-to-storyboard/temp';
-        const relativePath = path.relative(path.dirname(tempDirPath), srtPath);
 
         // Add the subtitles filter to the complex filter graph
-        filterStr += `[outv]subtitles=${path.normalize(relativePath).replace(/\\/g, '/')}[finalv]`;
+        filterStr += `[outv]subtitles=${srtPath}[finalv]`;
 
         command
             .complexFilter(filterStr)
