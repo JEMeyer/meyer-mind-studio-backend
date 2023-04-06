@@ -4,7 +4,7 @@ const express = require("express");
 const fs = require('fs').promises;
 const multer = require('multer');
 const Coqui = require('./coqui.js');
-const { downloadFiles, createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts} = require('./utilities.js');
+const { createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts} = require('./utilities.js');
 const OpenAI = require('./openai.js');
 const Stability = require('./stabilityai.js');
 const { v4: uuidv4 } = require('uuid');
@@ -73,11 +73,9 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
 
         for (let x in gpt_output.frames) {
             imagePromises.push(Stability.GenerateFrame(gpt_output.frames[x]['frame_desc'], speakers, gpt_output.theme, gpt_output.theme, uniqueFolder));
-            audioPromises.push(Coqui.CreateSoundSample(speakers[gpt_output.frames[x]['speaker'] - 1].speaker, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion']));
+            audioPromises.push(Coqui.CreateSoundSample(speakers[gpt_output.frames[x]['speaker'] - 1].speaker, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion'], uniqueFolder, x));
         }
-        const audioUrls = await Promise.all(audioPromises);
-
-        let audioPaths = await downloadFiles(audioUrls, uniqueFolder);
+        const audioPaths = await Promise.all(audioPromises);
         
         const outputVideo = `${uniqueFolder}/${gpt_output.name}.mp4`;
         const transcripts = await generateTranscripts(audioPaths, gpt_output.frames.map((frame) => frame.dialog))

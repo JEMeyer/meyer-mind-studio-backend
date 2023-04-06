@@ -1,4 +1,6 @@
 const axios = require('axios');
+const { downloadFile} = require('./utilities.js');
+
 
 const COQUI_SPEAKERS = [
     {
@@ -135,7 +137,7 @@ const female_names = ["Gitta Nikolina", "Claribel Dervla", "Ana Florence", "Vjol
 MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name));
 FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
 
-async function CreateSoundSample(speaker_id, text, emotion) {
+async function CreateSoundSample(speaker_id, text, emotion, folder, index) {
   emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
 
   var options = {
@@ -153,7 +155,9 @@ async function CreateSoundSample(speaker_id, text, emotion) {
   };
 
   const response = await axios.request(options);
-  return response.data.audio_url;
+  const audioPath = `${folder}/audio-${index}.wav`;
+  await downloadFile(response.data.audio_url, audioPath);
+  return audioPath;
 }
 
 module.exports = {

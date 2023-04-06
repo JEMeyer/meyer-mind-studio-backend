@@ -155,6 +155,7 @@ function formatTimestamp(timeInSeconds) {
 }
 
 module.exports = {
+    downloadFile,
     downloadFiles,
     createVideoFromImagesAndAudio,
     deleteFolder,
