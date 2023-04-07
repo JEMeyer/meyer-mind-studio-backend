@@ -59,37 +59,30 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
 
         const gpt_output = await OpenAI.GenerateStoryboard(prompt);
 
-        speakers = []
-        for (let x in gpt_output.speakers) {
-            const gender = gpt_output.speakers[x].gender
-            const desc = gpt_output.speakers[x].description
-            if (gender === 'male') {
-                speakers.push({
-                    id: gpt_output.speakers[x].id,
-                    speaker: Coqui.MaleSpeakers[Math.floor(Math.random() * Coqui.MaleSpeakers.length)].id,
-                    description: desc
-                })
-            } else {
-                speakers.push({
-                    id: gpt_output.speakers[x].id,
-                    speaker: Coqui.FemaleSpeakers[Math.floor(Math.random() * Coqui.FemaleSpeakers.length)].id,
-                    description: desc
-                })
-            }
-        }
-
         console.log(gpt_output)
 
         const currentWorkingDirectory = process.cwd();
         const uniqueFolder = path.join(currentWorkingDirectory, 'temp', uuidv4());
+        await fs.mkdir(uniqueFolder, { recursive: true });
+
+        characters = []
+        for (let x in gpt_output.speakers) {
+            const desc = gpt_output.speakers[x].description
+            const voice_prompt = gpt_output.speakers[x].voice_prompt
+            characters.push({
+                id: gpt_output.speakers[x].id,
+                speakerId: null,
+                description: desc,
+                voice_prompt: voice_prompt
+            })
+        }
+
         imagePromises = []
         audioPromises = []
 
-        await fs.mkdir(uniqueFolder, { recursive: true });
-
         for (let x in gpt_output.frames) {
-            imagePromises.push(Stability.GenerateFrame(gpt_output.frames[x]['frame_desc'], speakers, gpt_output.theme, gpt_output.theme, uniqueFolder));
-            audioPromises.push(Coqui.CreateSoundSample(speakers[gpt_output.frames[x]['speaker'] - 1].speaker, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion'], uniqueFolder, x));
+            imagePromises.push(Stability.GenerateFrame(gpt_output.frames[x]['frame_desc'], characters, gpt_output.theme, gpt_output.theme, uniqueFolder));
+            audioPromises.push(Coqui.CreateSoundSample(characters, gpt_output.frames[x]['speaker'] - 1, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion'], uniqueFolder, x));
         }
         const audioPaths = await Promise.all(audioPromises);
 
@@ -98,7 +91,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         const srtPath = path.join(uniqueFolder, 'subtitles.srt');
         generateSRT(transcripts, srtPath);
 
-        const imagePaths = await Promise.all(imagePromises);
+        let imagePaths = await Promise.all(imagePromises);
         await createVideoFromImagesAndAudio(imagePaths, audioPaths, srtPath, outputVideo);
 
         const fileStream = createReadStream(outputVideo);
