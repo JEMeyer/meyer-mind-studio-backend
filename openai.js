@@ -86,7 +86,7 @@ async function GenerateStoryboard(prompt) {
   }
 }
 
-const image_prompt = "Given the user's prompt as inspiration, please create an elaborated and detailed description for an image synthesis model to generate a visually impressive image. I want you only to return the prompt you would give to the  image synthesis model. Keep the  prompt length < 70 words total. An example of a  good  response is 'A digital illustration of a steampunk flying machine in the sky with cogs and mechanisms, 4k, detailed, trending in artstation, fantasy vivid colors'. The user's prompt is: ";
+const image_prompt = "Given a basic prompt, upscale it into a visually engaging description for an image generation model, focusing on key elements and impactful details while avoiding excessive verbosity. The description should be concise yet impressive, capturing the essence of the scene. Limit your response to a maximum of 50 words. Here's the basic prompt:";
 async function GenerateImagePrompt(prompt) {
   const response = await callGPT(image_prompt + `"""${prompt.trim()}"""`);
   console.log(response);
