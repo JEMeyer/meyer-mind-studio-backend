@@ -41,7 +41,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         // Use object destructuring to get name and age
         const prompt = req.body.prompt;
 
-        const gpt_output = await OpenAI.GenerateStoryboard(prompt)
+        const gpt_output = await OpenAI.GenerateStoryboard(prompt);
 
         speakers = []
         for (let x in gpt_output.speakers) {
@@ -99,6 +99,30 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
     } catch (err) {
         res.status(500).json({
             message: "Failed to create storyboard",
+        });
+        console.error(err);
+    }
+});
+
+app.post('/promptToImagePrompt', async (req, res) => {
+    // Check if request body is empty
+    if (!Object.keys(req.body).length) {
+        return res.status(400).json({
+            message: "Request body cannot be empty. ",
+        });
+    }
+
+    try {
+
+        // Use object destructuring to get name and age
+        const prompt = req.body.prompt;
+
+        const gpt_prompt = await OpenAI.GenerateImagePrompt(prompt);
+
+        res.json(gpt_prompt);
+    } catch (err) {
+        res.status(500).json({
+            message: "Failed to create image prompt",
         });
         console.error(err);
     }
