@@ -102,7 +102,7 @@ async function callGPT(prompt) {
   return res.data.choices[0].message.content
 }
 
-async function GenerateFrame(prompt, theme) {
+async function DallEGenerate(prompt, theme) {
     const daleeResponse =  await openai.createImage({
         prompt: `I want a picture of ${prompt} in the style of a ${theme}.`,
         size: "256x256",
@@ -112,6 +112,6 @@ async function GenerateFrame(prompt, theme) {
 
 module.exports = {
     GenerateStoryboard,
-    GenerateFrame,
+    DallEGenerate,
     GenerateImagePrompt
   };

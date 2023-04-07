@@ -4,12 +4,14 @@ const express = require("express");
 const fs = require('fs').promises;
 const multer = require('multer');
 const Coqui = require('./coqui.js');
-const { createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts} = require('./utilities.js');
+const { createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts } = require('./utilities.js');
 const OpenAI = require('./openai.js');
 const Stability = require('./stabilityai.js');
+const LocalDiffusion = require('./localDiffusion.js')
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const { createReadStream } = require('fs');
+const { Readable } = require('stream');
 
 // Initialize express
 const app = express();
@@ -49,13 +51,13 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
             const desc = gpt_output.speakers[x].description
             if (gender === 'male') {
                 speakers.push({
-                    id:  gpt_output.speakers[x].id,
+                    id: gpt_output.speakers[x].id,
                     speaker: Coqui.MaleSpeakers[Math.floor(Math.random() * Coqui.MaleSpeakers.length)].id,
                     description: desc
                 })
             } else {
                 speakers.push({
-                    id:  gpt_output.speakers[x].id,
+                    id: gpt_output.speakers[x].id,
                     speaker: Coqui.FemaleSpeakers[Math.floor(Math.random() * Coqui.FemaleSpeakers.length)].id,
                     description: desc
                 })
@@ -76,7 +78,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
             audioPromises.push(Coqui.CreateSoundSample(speakers[gpt_output.frames[x]['speaker'] - 1].speaker, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion'], uniqueFolder, x));
         }
         const audioPaths = await Promise.all(audioPromises);
-        
+
         const outputVideo = `${uniqueFolder}/${gpt_output.name}.mp4`;
         const transcripts = await generateTranscripts(audioPaths, gpt_output.frames.map((frame) => frame.dialog))
         const srtPath = path.join(uniqueFolder, 'subtitles.srt');
@@ -123,6 +125,50 @@ app.post('/promptToImagePrompt', async (req, res) => {
     } catch (err) {
         res.status(500).json({
             message: "Failed to create image prompt",
+        });
+        console.error(err);
+    }
+});
+
+app.post('/promptToImage', async (req, res) => {
+    // Check if requeest body is empty
+    if (!Object.keys(req.body).length) {
+        return res.status(400).json({
+            message: "Request body cannot be empty. ",
+        });
+    }
+
+    try {
+        const prompt = req.body.prompt;
+        const scale = req.body.scale ?? 7.5;
+        const steps = req.body.steps ?? 50;
+        const seed = req.body.seed ?? 3465383516;
+        const localDiffusion = req.body.localDiffusion;
+
+        let response;
+
+        if (localDiffusion) {
+            response = await LocalDiffusion.Generate({ prompt, scale, steps, seed });
+        } else {
+            response = await Stability.Generate({ prompt, scale, steps, seed });
+        }
+
+        // Convert ArrayBuffer to Buffer
+        const buffer = Buffer.from(response.data);
+
+        // Convert Buffer to Stream
+        const stream = Readable.from(buffer);
+
+        // Set the response headers
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename=${response.fileName}`);
+        res.setHeader('Content-Length', buffer.length);
+
+        // Pipe the stream to the response
+        stream.pipe(res);
+    } catch (err) {
+        res.status(500).json({
+            message: "Failed to create image",
         });
         console.error(err);
     }
