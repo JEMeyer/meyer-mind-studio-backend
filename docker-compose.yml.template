@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  your-app:
+  MeyerMindStudio:
     build: .
     env_file: .env
     ports:
