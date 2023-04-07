@@ -1,6 +1,7 @@
 // Require express
 require('dotenv').config();
 const express = require("express");
+const basicAuth = require('express-basic-auth');
 const fs = require('fs').promises;
 const multer = require('multer');
 const Coqui = require('./coqui.js');
@@ -13,11 +14,24 @@ const path = require('path');
 const { createReadStream } = require('fs');
 const { Readable } = require('stream');
 
+const apiUsers = {
+    KwisatzHaderach: process.env.API_TOKEN,
+    // Add more users and their secrets as needed
+  };
+
 // Initialize express
 const app = express();
 const PORT = 8080;
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Security
+app.use(
+    basicAuth({
+        users: apiUsers,
+        unauthorizedResponse: { message: 'Unauthorized' }
+    })
+);
 
 // parse JSON
 app.use(express.json());
