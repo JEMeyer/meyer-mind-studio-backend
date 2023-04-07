@@ -137,16 +137,17 @@ const female_names = ["Gitta Nikolina", "Claribel Dervla", "Ana Florence", "Vjol
 MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name));
 FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
 
-async function CreateSoundSample(characters, character_index, text, emotion, folder, index) {
+async function CreateSoundSample(characters, character_index, text, emotion, folder, index, speakerUpdateCallback) {
   emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
 
   let audio_url = ''
 
   // We may need to prompt-to-voice if this is the first line for this character
   if (!characters[character_index].speakerId) {
+    console.log('Generating a new voice')
     const { url, characterId } = await SampleFromPrompt(characters[character_index].voice_prompt, text, emotion)
     audio_url = url;
-    characters[character_index].speakerId = characterId;
+    speakerUpdateCallback(character_index, characterId)
   } else {
     var options = {
       method: 'POST',
@@ -166,7 +167,7 @@ async function CreateSoundSample(characters, character_index, text, emotion, fol
   }
   
   const audioPath = `${folder}/audio-${index}.wav`;
-  await downloadFile(response.data.audio_url, audioPath);
+  await downloadFile(audio_url, audioPath);
   return audioPath;
 }
 
@@ -175,11 +176,10 @@ async function SampleFromPrompt(speaker_prompt, text, emotion) {
 
   var options = {
     method: 'POST',
-    url: 'https://app.coqui.ai/api/v2/samples/from-prompt',
+    url: 'https://app.coqui.ai/api/v2/samples/from-prompt/',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
-      'Referer': process.env.REFERER,
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`
     },
     data: {
       prompt: speaker_prompt,
@@ -190,6 +190,8 @@ async function SampleFromPrompt(speaker_prompt, text, emotion) {
   };
 
   const response = await axios.request(options);
+  
+  console.log(response.data);
   return { url: response.data.audio_url, characterId: response.data.id };
 };
 
