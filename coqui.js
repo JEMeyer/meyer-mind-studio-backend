@@ -137,46 +137,34 @@ const female_names = ["Gitta Nikolina", "Claribel Dervla", "Ana Florence", "Vjol
 MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name));
 FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
 
-async function CreateSoundSample(characters, character_index, text, emotion, folder, index, speakerUpdateCallback) {
+async function CreateSoundSample(voiceId, text, emotion, folder, index) {
   emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
 
-  let audio_url = ''
+  var options = {
+    method: 'POST',
+    url: 'https://app.coqui.ai/api/v2/samples',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`
+    },
+    data: {
+      voice_id: voiceId,
+      name: 'temp',
+      text: text,
+    }
+  };
+  const response = await axios.request(options);
+  audio_url = response.data.audio_url
 
-  // We may need to prompt-to-voice if this is the first line for this character
-  if (!characters[character_index].speakerId) {
-    console.log('Generating a new voice')
-    const { url, characterId } = await SampleFromPrompt(characters[character_index].voice_prompt, text, emotion)
-    audio_url = url;
-    speakerUpdateCallback(character_index, characterId)
-  } else {
-    var options = {
-      method: 'POST',
-      url: 'https://app.coqui.ai/api/v2/samples',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.COQUI_API_KEY}`
-      },
-      data: {
-        voice_id: characters[character_index].speakerId,
-        name: 'temp',
-        text: text,
-      }
-    };
-    const response = await axios.request(options);
-    audio_url = response.data.audio_url
-  }
-  
   const audioPath = `${folder}/audio-${index}.wav`;
   await downloadFile(audio_url, audioPath);
   return audioPath;
 }
 
-async function SampleFromPrompt(speaker_prompt, text, emotion) {
-  emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
-
+async function VoiceFromPrompt(speaker_prompt) {
   var options = {
     method: 'POST',
-    url: 'https://app.coqui.ai/api/v2/samples/from-prompt/',
+    url: 'https://app.coqui.ai/api/v2/voices/from-prompt/',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.COQUI_API_KEY}`
@@ -184,19 +172,18 @@ async function SampleFromPrompt(speaker_prompt, text, emotion) {
     data: {
       prompt: speaker_prompt,
       name: 'temp',
-      text: text,
-      emotion: emotion
     }
   };
 
   const response = await axios.request(options);
-  
+
   console.log(response.data);
-  return { url: response.data.audio_url, characterId: response.data.id };
+  return response.data.id;
 };
 
 module.exports = {
   MaleSpeakers,
   FemaleSpeakers,
-  CreateSoundSample
+  CreateSoundSample,
+  VoiceFromPrompt
 };

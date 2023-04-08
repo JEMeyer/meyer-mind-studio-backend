@@ -68,30 +68,29 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         characters = []
         for (let x in gpt_output.speakers) {
             const desc = gpt_output.speakers[x].description
-            const voice_prompt = gpt_output.speakers[x].voice_prompt
+            const voice_id = await Coqui.VoiceFromPrompt(gpt_output.speakers[x].voice_prompt)
             characters.push({
                 id: gpt_output.speakers[x].id,
-                speakerId: null,
+                voiceId: voice_id,
                 description: desc,
-                voice_prompt: voice_prompt
             })
         }
 
-        imagePromises = []
-        audioPaths = []
+        let imagePromises = []
+        let audioPromises = []
 
         // Do all images at once
         for (let x in gpt_output.frames) {
             imagePromises.push(Stability.GenerateFrame(gpt_output.frames[x]['frame_desc'], characters, gpt_output.theme, gpt_output.theme, uniqueFolder,));
+            audioPromises.push(Coqui.CreateSoundSample(
+                characters[gpt_output.frames[x]['speaker'] - 1].voiceId,
+                gpt_output.frames[x]['dialog'],
+                gpt_output.frames[x]['emotion'],
+                uniqueFolder,
+                x));
         }
 
-        // Sequentially do audio
-        for (let x in gpt_output.frames) {
-            const callback = function(index, id){
-                characters[index].speakerId = id;
-            }
-            audioPaths.push(await Coqui.CreateSoundSample(characters, gpt_output.frames[x]['speaker'] - 1, gpt_output.frames[x]['dialog'], gpt_output.frames[x]['emotion'], uniqueFolder, x, callback));
-        }
+        const audioPaths = await Promise.all(audioPromises);
 
         const outputVideo = `${uniqueFolder}/${gpt_output.name}.mp4`;
         const transcripts = await generateTranscripts(audioPaths, gpt_output.frames.map((frame) => frame.dialog))
