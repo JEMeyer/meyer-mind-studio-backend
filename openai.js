@@ -4,7 +4,7 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-let storyboard_prompt = `Create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with a name (1-3 words), setting (brief description of what is in the background for all frames, such as the town or building they are in), theme (artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping speaker number to gender and a visual description of the speaker), and an array of frames. Each frame must include speaker number, brief R-rated dialog (THIS FIELD IS REQUIRED, must be between 1-150 characters in length), emotion (only allowed values: 'Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'), and a description of the action in the frame (reference the speaker numbers as characters so I know which characters to draw in the scene. Be sure to always include at least 1 character, and mark the  characters with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}"). Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. Example:
+let storyboard_prompt = `Create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with a name (1-3 words), setting (brief description of what is in the background for all frames, such as the town or building they are in), theme (artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speaker number, a visual description of the speaker, and a description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker, as shown in the example, and do not include any curly braces ({ or }) in the dialog)), and an array of frames. Each frame must include speaker number, brief R-rated dialog (THIS FIELD IS REQUIRED, must be between 1-150 characters in length), emotion (only allowed values: 'Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'), and a description of the action in the frame (reference the speaker numbers as characters so I know which characters to draw in the scene. Be sure to always include at least 1 character, and mark the  characters with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}"). Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. Keep the combined length of the frame_desc plus the character descriptions in the frame to less than 70 words total. Example:
 {
     name: "Bozos Wawawawa",
     setting: 'Inside a circus tent during a performance',
@@ -12,13 +12,13 @@ let storyboard_prompt = `Create a movie scene with a name, setting, theme, speak
     speakers: [
       {
         id: 1,
-        gender: 'male',
         description: 'Bozo the clown, with a red nose, curly blue hair, and oversized shoes'
+        voice_prompt: 'An older male with a British accent and a pleasing, deep voice'
       },
       {
         id: 2,
-        gender: 'female',
         description: 'An exasperated ringmaster, wearing a top hat and a red coat with gold trim'
+        voice_prompt: 'An tennager female with a American accent and a shrill voice.'
       }
     ],
     frames: [
@@ -37,19 +37,19 @@ let storyboard_prompt = `Create a movie scene with a name, setting, theme, speak
       {
         speaker: 1,
         dialog: 'Wawawawa?',
-        emotion: 'Confused',
+        emotion: 'Surprise',
         frame_desc: '{1} looks up at {2} with a puzzled expression, as a spotlight illuminates them both'
       },
       {
         speaker: 2,
         dialog: "Yes, that sound! It's driving everyone crazy!",
-        emotion: 'Annoyed',
+        emotion: 'Angry',
         frame_desc: '{2} gestures to the crowd, who are covering their ears and shaking their heads'
       },
       {
         speaker: 1,
         dialog: 'Wawawawa!',
-        emotion: 'Defiant',
+        emotion: 'Dull',
         frame_desc: "{1} grins mischievously and starts hopping on one foot, still saying 'wawawawa'"
       },
       {

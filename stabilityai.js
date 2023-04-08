@@ -2,10 +2,10 @@ const { generateAsync } = require('stability-client');
 const path = require('path');
 const fs = require('fs')
 
-async function GenerateFrame(prompt, speakers, theme, setting, folder) {
+async function GenerateFrame(prompt, characters, theme, setting, folder) {
     try {
         let transformedPrompt = prompt;
-        speakers.forEach(obj => {
+        characters.forEach(obj => {
             const placeholder = `{${obj.id}}`;
             transformedPrompt = transformedPrompt.replace(placeholder, obj.description);
         });
