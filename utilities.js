@@ -80,7 +80,6 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
                 '-map [outa]',
                 '-c:s mov_text',
                 '-metadata:s:s:0 language=eng',
-                '-shortest',
                 '-y', // Overwrite output file if it exists
             ])
             .on('error', function (err, stdout, stderr) {

@@ -138,7 +138,7 @@ MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name
 FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
 
 async function CreateSoundSample(voiceId, text, emotion, folder, index) {
-  emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
+  const local_emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
 
   var options = {
     method: 'POST',
@@ -151,10 +151,11 @@ async function CreateSoundSample(voiceId, text, emotion, folder, index) {
       voice_id: voiceId,
       name: 'temp',
       text: text,
+      emotion: local_emotion
     }
   };
   const response = await axios.request(options);
-  audio_url = response.data.audio_url
+  const audio_url = response.data.audio_url
 
   const audioPath = `${folder}/audio-${index}.wav`;
   await downloadFile(audio_url, audioPath);
