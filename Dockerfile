@@ -20,8 +20,11 @@ RUN npm install -g pm2
 # Copy the application source code to the working directory
 COPY . .
 
+# Build the TypeScript code to JavaScript
+RUN npm run build
+
 # Expose the port your application listens on
 EXPOSE 8080
 
 # Start the application
-CMD ["pm2-runtime", "server.js"]
+CMD ["pm2-runtime", "dist/server.js"]
