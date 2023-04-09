@@ -8,6 +8,7 @@ ffmpeg.setFfprobePath(process.env.FFPROBE_PATH || '');
 
 import os from 'os';
 import { Transcript } from './types';
+import { FfmpegError } from './exceptions';
 const platform = os.platform();
 
 export async function downloadFile(url: string, localPath: string) {
@@ -79,7 +80,7 @@ export function createVideoFromImagesAndAudio(
         console.log('Error:', err.message);
         console.log('ffmpeg stdout:', stdout);
         console.log('ffmpeg stderr:', stderr);
-        reject(err);
+        reject(new FfmpegError());
       })
       .on('end', () => {
         resolve();

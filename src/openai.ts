@@ -5,8 +5,9 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 import { validlateMainPrompt } from './gptValidator';
 import { PrimaryStoryboardResponse } from './types';
+import { OpenAIAPIError } from './exceptions';
 
-const storyboard_prompt = `Create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with a name (1-4 words), setting (brief description of what is in the background for all frames, such as the town or building they are in), theme (artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speaker number, a visual description of the speaker (avoid using 'kids', 'boy', or 'girl' for content filter reasons), and a description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker, as shown in the example. Do not include any curly braces ({ or }) in the dialog)), and an array of frames. Each frame must include speaker number, brief R-rated dialog (THIS FIELD IS REQUIRED, must be between 1-150 characters in length), emotion (only allowed values: 'Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'), and a description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. Be sure to always include at least 1 character, and mark the  characters with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}"). Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's description), the setting, and the theme should be less than 60 words. Each frame's dialog must be between 1 and 250 characters. Example:
+const storyboard_prompt = `Create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with a name (1-4 words), setting (brief description of what is in the background for all frames, such as the town or building they are in), theme (artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speaker number, a visual description of the speaker (avoid using 'kids', 'boy', or 'girl' for content filter reasons), and a description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker, as shown in the example. Do not include any curly braces ({ or }) in the dialog)), and an array of frames. Each frame must include speaker number, brief R-rated dialog (THIS FIELD IS REQUIRED, must be between 1-150 characters in length), emotion (only allowed values: 'Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'), and a description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. Be sure to always include at least 1 character, and mark the  characters with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}"). Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's description), the setting, and the theme should be less than 60 words. Each frame's dialog must be between 1 and 250 characters. Example showing the schema:
 {
   name: 'Jenga Battle',
   setting: 'luxurious living room with a Jenga set on the coffee table and expensive decor in the background.',
@@ -121,7 +122,7 @@ export async function GenerateStoryboard(prompt: string) {
         retries--; // Decrement the retry counter if a SyntaxError is thrown
         if (retries === 0) {
           console.error('Failed openAI request ', error);
-          throw new Error('All retries failed due to JSON parsing error');
+          throw new OpenAIAPIError();
         }
       } else {
         // If the error is not a SyntaxError, throw it immediately
@@ -129,7 +130,7 @@ export async function GenerateStoryboard(prompt: string) {
       }
     }
   }
-  throw new Error();
+  throw new OpenAIAPIError();
 }
 
 const image_prompt =

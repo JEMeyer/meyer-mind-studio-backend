@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { downloadFile } from './utilities';
+import { CoquiAPIError } from './exceptions';
 
 const COQUI_SPEAKERS = [
   {
@@ -197,12 +198,16 @@ export async function CreateSoundSample(
       emotion: local_emotion,
     },
   };
-  const response = await axios.request(options);
-  const audio_url = response.data.audio_url;
+  try {
+    const response = await axios.request(options);
+    const audio_url = response.data.audio_url;
 
-  const audioPath = `${folder}/audio-${index}.wav`;
-  await downloadFile(audio_url, audioPath);
-  return audioPath;
+    const audioPath = `${folder}/audio-${index}.wav`;
+    await downloadFile(audio_url, audioPath);
+    return audioPath;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
 }
 
 export async function VoiceFromPrompt(speaker_prompt: string) {
@@ -219,8 +224,12 @@ export async function VoiceFromPrompt(speaker_prompt: string) {
     },
   };
 
-  const response = await axios.request(options);
+  try {
+    const response = await axios.request(options);
 
-  console.log(response.data);
-  return response.data.id;
+    console.log(response.data);
+    return response.data.id;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
 }

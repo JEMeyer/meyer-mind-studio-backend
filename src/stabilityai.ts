@@ -1,6 +1,7 @@
 import { generateAsync } from 'stability-client';
 import path from 'path';
 import { Character, GenerateData, GenerateResponse } from './types';
+import { StabilityAPIError } from './exceptions';
 
 export async function GenerateFrame(
   prompt: string,
@@ -27,7 +28,7 @@ export async function GenerateFrame(
     return images[0].filePath;
   } catch (e) {
     console.error(`Error creating image: ${e}`);
-    throw e;
+    throw new StabilityAPIError();
   }
 }
 
@@ -52,6 +53,6 @@ export async function Generate(data: GenerateData) {
     };
   } catch (e) {
     console.error(`Error creating image with prompt:${data.prompt}: ${e}`);
-    throw e;
+    throw new StabilityAPIError();
   }
 }

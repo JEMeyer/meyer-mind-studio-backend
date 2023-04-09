@@ -19,6 +19,12 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { Readable } from 'stream';
 import { Character } from './types';
+import {
+  CoquiAPIError,
+  FfmpegError,
+  OpenAIAPIError,
+  StabilityAPIError,
+} from './exceptions';
 
 const apiUsers = {
   KwisatzHaderach: process.env.API_TOKEN || '',
@@ -138,9 +144,29 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
       deleteFolder(uniqueFolder);
     });
   } catch (err) {
-    res.status(500).json({
-      message: 'Failed to create storyboard',
-    });
+    if (err instanceof StabilityAPIError) {
+      console.log('StabilityAPIError error');
+      res.status(500).statusMessage =
+        'Failed during image creation (invalid prompt detected).';
+      res.send();
+    } else if (err instanceof OpenAIAPIError) {
+      console.log('OpenAIAPIError error');
+      res.status(500).statusMessage =
+        'Failed during GPT calls.';
+      res.send();
+    } else if (err instanceof CoquiAPIError) {
+      console.log('CoquiAPIError error');
+      res.status(500).statusMessage = 'Failed during voice creation.';
+      res.send();
+    } else if (err instanceof FfmpegError) {
+      console.log('FfmpegError error');
+      res.status(500).statusMessage = 'Failed during video creation.';
+      res.send();
+    } else {
+      res.status(500).statusMessage = 'Failed with unknown error.';
+      res.send();
+    }
+
     console.error(err);
   }
 });
@@ -161,10 +187,13 @@ app.post('/promptToImagePrompt', async (req, res) => {
 
     res.json(gpt_prompt);
   } catch (err) {
-    res.status(500).json({
-      message: 'Failed to create image prompt',
-    });
-    console.error(err);
+    if (err instanceof OpenAIAPIError) {
+      res.status(500).statusMessage = 'Failed during GPT calls.';
+      res.send();
+    } else {
+      res.status(500).statusMessage = 'Failed with unknown error.';
+      res.send();
+    }
   }
 });
 
@@ -208,9 +237,14 @@ app.post('/promptToImage', async (req, res) => {
     // Pipe the stream to the response
     stream.pipe(res);
   } catch (err) {
-    res.status(500).json({
-      message: 'Failed to create image',
-    });
-    console.error(err);
+    if (err instanceof StabilityAPIError) {
+      console.log('StabilityAPIError error');
+      res.status(500).statusMessage =
+        'Failed during image creation (invalid prompt detected).';
+      res.send();
+    } else {
+      res.status(500).statusMessage = 'Failed with unknown error.';
+      res.send();
+    }
   }
 });
