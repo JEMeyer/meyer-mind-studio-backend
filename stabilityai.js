@@ -1,6 +1,5 @@
 const { generateAsync } = require('stability-client');
 const path = require('path');
-const fs = require('fs')
 
 async function GenerateFrame(prompt, characters, theme, setting, folder) {
     try {
@@ -11,13 +10,13 @@ async function GenerateFrame(prompt, characters, theme, setting, folder) {
         });
 
         const { res, images } = await generateAsync({
-            prompt: `I want an HD picture of ${transformedPrompt} in the style of a ${theme} with a background setting of ${setting}`,
+            prompt: `HD picture of ${transformedPrompt} in the style of ${theme}. background setting: ${setting}`,
             apiKey: process.env.DREAMSTUDIO_API_KEY,
             outDir: folder
         });
         return images[0].filePath;
     } catch (e) {
-        console.error(`Error creating image with prompt:${prompt}: ${e}`);
+        console.error(`Error creating image: ${e}`);
         throw e;
     }
 }
