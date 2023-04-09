@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  MeyerMindStudio:
+  meyer-mind-studio:
     build: .
     env_file: .env
     ports:
