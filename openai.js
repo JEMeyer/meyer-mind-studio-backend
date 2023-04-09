@@ -94,7 +94,7 @@ async function GenerateStoryboard(prompt) {
       if (errors.length > 0) {
         let history = [];
         history.push({role: 'user', content: prompt.trim()});
-        history.pushs({role: 'assistant', content: response});
+        history.push({role: 'assistant', content: response});
 
         let correctingPrompt = 'I noticed some issues with the JSON object you sent. I will list the things I noticed at the end of this message. Please return the JSON object you sent earlier, but with modifications to avoid thet issues specified. As before, only reply with the JSON object.\n';
         correctingPrompt += errors.join('\n');
