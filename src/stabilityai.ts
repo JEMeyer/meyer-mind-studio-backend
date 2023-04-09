@@ -1,7 +1,10 @@
-const { generateAsync } = require('stability-client');
-const path = require('path');
+import { generateAsync } from 'stability-client';
+import path from 'path';
+import { Character, GenerateData, GenerateResponse } from './types';
 
-async function GenerateFrame(prompt, characters, theme, setting, folder) {
+
+
+export async function GenerateFrame(prompt: string, characters: Character[], theme: string, setting: string, folder: string) {
     try {
         let transformedPrompt = prompt;
         characters.forEach(obj => {
@@ -9,11 +12,11 @@ async function GenerateFrame(prompt, characters, theme, setting, folder) {
             transformedPrompt = transformedPrompt.replace(placeholder, obj.description);
         });
 
-        const { res, images } = await generateAsync({
+        const { images } = await generateAsync({
             prompt: `HD picture of ${transformedPrompt} in the style of ${theme}. background setting: ${setting}`,
-            apiKey: process.env.DREAMSTUDIO_API_KEY,
+            apiKey: process.env.DREAMSTUDIO_API_KEY || '',
             outDir: folder
-        });
+        }) as GenerateResponse;
         return images[0].filePath;
     } catch (e) {
         console.error(`Error creating image: ${e}`);
@@ -21,16 +24,17 @@ async function GenerateFrame(prompt, characters, theme, setting, folder) {
     }
 }
 
-async function Generate(data) {
+
+export async function Generate(data: GenerateData) {
     try {
-        const { res, images } = await generateAsync({
+        const { images } = await generateAsync({
             prompt: data.prompt,
-            apiKey: process.env.DREAMSTUDIO_API_KEY,
-            seed: [data.seed],
+            apiKey: process.env.DREAMSTUDIO_API_KEY || '',
+            seed: data.seed,
             steps: data.steps,
             cfgScale: data.scale,
             noStore: true
-        });
+        }) as GenerateResponse;
 
         const fileNameData = `${data.seed}_____${path.basename(images[0].filePath)}`;
 
@@ -42,9 +46,4 @@ async function Generate(data) {
         console.error(`Error creating image with prompt:${data.prompt}: ${e}`);
         throw e;
     }
-}
-
-module.exports = {
-    Generate,
-    GenerateFrame
 }

@@ -1,21 +1,22 @@
 // Require express
-require('dotenv').config();
-const express = require("express");
-const basicAuth = require('express-basic-auth');
-const fs = require('fs').promises;
-const multer = require('multer');
-const Coqui = require('./coqui.js');
-const { createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts } = require('./utilities.js');
-const OpenAI = require('./openai.js');
-const Stability = require('./stabilityai.js');
-const LocalDiffusion = require('./localDiffusion.js')
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const { createReadStream } = require('fs');
-const { Readable } = require('stream');
+import dotenv from 'dotenv';
+dotenv.config();
+import express from "express";
+import basicAuth from 'express-basic-auth';
+import fs from 'fs';
+import multer from 'multer';
+import * as Coqui from './coqui';
+import { createVideoFromImagesAndAudio, deleteFolder, generateSRT, generateTranscripts } from './utilities';
+import * as OpenAI from './openai';
+import * as Stability from './stabilityai';
+import * as LocalDiffusion from './localDiffusion';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { Readable } from 'stream';
+import { Character } from './types';
 
 const apiUsers = {
-    KwisatzHaderach: process.env.API_TOKEN,
+    KwisatzHaderach: process.env.API_TOKEN || '',
     // Add more users and their secrets as needed
   };
 
@@ -63,9 +64,9 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
 
         const currentWorkingDirectory = process.cwd();
         const uniqueFolder = path.join(currentWorkingDirectory, 'temp', uuidv4());
-        await fs.mkdir(uniqueFolder, { recursive: true });
+        await fs.promises.mkdir(uniqueFolder, { recursive: true });
 
-        characters = []
+        let characters: Character[] = []
         for (let x in gpt_output.speakers) {
             const desc = gpt_output.speakers[x].description
             const voice_id = await Coqui.VoiceFromPrompt(gpt_output.speakers[x].voice_prompt)
@@ -73,7 +74,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
                 id: gpt_output.speakers[x].id,
                 voiceId: voice_id,
                 description: desc,
-            })
+            });
         }
 
         let imagePromises = []
@@ -100,7 +101,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
         let imagePaths = await Promise.all(imagePromises);
         await createVideoFromImagesAndAudio(imagePaths, audioPaths, srtPath, outputVideo);
 
-        const fileStream = createReadStream(outputVideo);
+        const fileStream = fs.createReadStream(outputVideo);
         const fileName = `${gpt_output.name}.mp4`;
 
         res.setHeader('Content-Type', 'video/mp4');

@@ -1,27 +1,6 @@
-/*
-{
-    name: "Bozos Wawawawa",
-    setting: 'Inside a circus tent during a performance',
-    theme: 'Bright and colorful, reminiscent of vintage circus posters with bold typography and exaggerated illustrations',
-    speakers: [
-      {
-        id: 2,
-        description: 'An exasperated ringmaster, wearing a top hat and a red coat with gold trim'
-        voice_prompt: 'An tennager female with a American accent and a shrill voice.'
-      },
-    ],
-    frames: [
-      {
-        speaker: 1,
-        dialog: 'Wawawawa!',
-        emotion: 'Happy',
-        frame_desc: "{1} jumps up and down, waving his arms and shouting 'wawawawa' as the audience cheers"
-      },
-    ]
-  }
-*/
+import { PrimaryStoryboardResponse } from "./types";
 
-function validlateMainPrompt(object) {
+export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
     let emptyDialogFrames = [];
     let dialogExceededFrames = [];
     let imageWordsExceededFrames = [];
@@ -61,8 +40,4 @@ function validlateMainPrompt(object) {
     }
 
     return errors;
-}
-
-module.exports = {
-    validlateMainPrompt
 }

@@ -1,15 +1,16 @@
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
-const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH);
-ffmpeg.setFfprobePath(process.env.FFPROBE_PATH);
+import ffmpeg from 'fluent-ffmpeg';
+ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
+ffmpeg.setFfprobePath(process.env.FFPROBE_PATH ||  '');
 
-const os = require('os');
+import os  from'os';
+import { Transcript } from './types';
 const platform = os.platform();
 
-async function downloadFile(url, localPath) {
+export async function downloadFile(url: string, localPath: string) {
     const response = await axios({
       url,
       responseType: 'arraybuffer',
@@ -18,23 +19,8 @@ async function downloadFile(url, localPath) {
     await fs.promises.writeFile(localPath, Buffer.from(response.data));
 }
 
-async function downloadFiles(audioUrls, folder) {
-    const audioPaths = [];
-    const promises = []
-
-    for (let i = 0; i < audioUrls.length; i++) {
-        const audioPath = `${folder}/audio-${i}.wav`;
-        promises.push(downloadFile(audioUrls[i], audioPath));
-        audioPaths.push(audioPath);
-    }
-
-    await Promise.all(promises);
-
-    return audioPaths;
-}
-
-function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
-    return new Promise((resolve, reject) => {
+export function createVideoFromImagesAndAudio(images: string[], audios: string[], srtPath: string, outputPath: string) {
+    return new Promise<void>((resolve, reject) => {
         // Ensure there are an equal number of images and audio files
         if (images.length !== audios.length) {
             console.error(JSON.stringify(images))
@@ -95,7 +81,7 @@ function createVideoFromImagesAndAudio(images, audios, srtPath, outputPath) {
     });
 }
   
-function deleteFolder(folderPath, delay = 2000) {
+export function deleteFolder(folderPath: string, delay = 2000) {
     if (fs.existsSync(folderPath)) {
         setTimeout(() => {
             fs.rmSync(folderPath, { recursive: true, force: true });
@@ -103,19 +89,21 @@ function deleteFolder(folderPath, delay = 2000) {
     }
 }
 
-async function getAudioDuration(filePath) {
+async function getAudioDuration(filePath: string): Promise<number> {
     return new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err) {
-            reject(err);
+                reject(err);
             } else {
-            resolve(metadata.format.duration);
+                resolve(metadata.format.duration || 0);
             }
         });
     });
-  }
+  };
 
-async function generateTranscripts(audioClips, dialogs) {
+
+
+export async function generateTranscripts(audioClips: string[], dialogs: string[]): Promise<Transcript[]> {
     const durationPromises = audioClips.map((audioPath) => getAudioDuration(audioPath));
     const durations = await Promise.all(durationPromises);
     
@@ -127,7 +115,7 @@ async function generateTranscripts(audioClips, dialogs) {
     return transcripts;
 }
 
-function generateSRT(transcripts, outputPath) {
+export function generateSRT(transcripts: Transcript[], outputPath: string) {
     let srtContent = '';
     let startTime = 0;
   
@@ -148,7 +136,7 @@ function generateSRT(transcripts, outputPath) {
     fs.writeFileSync(outputPath, srtContent);
 }
 
-function formatTimestamp(timeInSeconds) {
+export function formatTimestamp(timeInSeconds: number) {
     const totalSeconds = Math.floor(timeInSeconds);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -157,12 +145,3 @@ function formatTimestamp(timeInSeconds) {
 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
 }
-
-module.exports = {
-    downloadFile,
-    downloadFiles,
-    createVideoFromImagesAndAudio,
-    deleteFolder,
-    generateSRT,
-    generateTranscripts
-  };

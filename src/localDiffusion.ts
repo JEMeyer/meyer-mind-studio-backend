@@ -1,6 +1,7 @@
-const axios = require('axios');
+import axios from 'axios';
+import { GenerateData } from './types';
 
-async function Generate(data) {
+export async function Generate(data: GenerateData) {
     const response = await axios.post('http://192.168.1.99:20020/generate', data, {
         headers: {
             'Content-Type': 'application/json',
@@ -18,7 +19,3 @@ async function Generate(data) {
         fileName: `${data.seed}_____${filename}`,
     };
 }
-
-module.exports = {
-    Generate
-};

@@ -1,5 +1,5 @@
-const axios = require('axios');
-const { downloadFile } = require('./utilities.js');
+import axios from 'axios';
+import { downloadFile } from './utilities';
 
 
 const COQUI_SPEAKERS = [
@@ -134,10 +134,10 @@ const COQUI_EMOTIONS = ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull']
 const male_names = ["Damien Black", "Viktor Menelaos", "Baldur Sanjin", "Zacharie Aimilios", "Viktor Eka", "Torcull Diarmuid", "Ethan Heedful", "Craig Gutsy", "Ludvig Milivoj", "Kazuhiko Atallah", "Adde Michal", "Ilkin Urbano", "Dionisio Schuyler", "Abrahan Mack", "Gilberto Mathias", "Suad Qasim", "Royston Min", "Badr Odhiambo"];
 const female_names = ["Gitta Nikolina", "Claribel Dervla", "Ana Florence", "Vjollca Johnnie", "Brenda Stern", "Tammy Grit", "Henriette Usha", "Sofia Hellen", "Tanja Adelina", "Annmarie Nele", "Alison Dietlinde", "Asya Anara", "Tammie Ema"];
 
-MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name));
-FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
+export const MaleSpeakers = COQUI_SPEAKERS.filter(speaker => male_names.includes(speaker.name));
+export const FemaleSpeakers = COQUI_SPEAKERS.filter(speaker => female_names.includes(speaker.name));
 
-async function CreateSoundSample(voiceId, text, emotion, folder, index) {
+export async function CreateSoundSample(voiceId: string, text: string, emotion: string, folder: string, index: string) {
   const local_emotion = COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral'
 
   var options = {
@@ -162,7 +162,7 @@ async function CreateSoundSample(voiceId, text, emotion, folder, index) {
   return audioPath;
 }
 
-async function VoiceFromPrompt(speaker_prompt) {
+export async function VoiceFromPrompt(speaker_prompt: string) {
   var options = {
     method: 'POST',
     url: 'https://app.coqui.ai/api/v2/voices/from-prompt/',
@@ -180,11 +180,4 @@ async function VoiceFromPrompt(speaker_prompt) {
 
   console.log(response.data);
   return response.data.id;
-};
-
-module.exports = {
-  MaleSpeakers,
-  FemaleSpeakers,
-  CreateSoundSample,
-  VoiceFromPrompt
 };
