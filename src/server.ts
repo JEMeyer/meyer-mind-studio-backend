@@ -151,8 +151,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
       res.send();
     } else if (err instanceof OpenAIAPIError) {
       console.log('OpenAIAPIError error');
-      res.status(500).statusMessage =
-        'Failed during GPT calls.';
+      res.status(500).statusMessage = 'Failed during GPT calls.';
       res.send();
     } else if (err instanceof CoquiAPIError) {
       console.log('CoquiAPIError error');
