@@ -54,7 +54,7 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
     );
   } else if (imageWordsExceededFrames.length > 0) {
     errors.push(
-      `Problem: Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Removing excess character references from the frame.visual_description is likely a good way, as is making the object's setting_description and theme_visuals more concise. Frame indices with issue: ${imageWordsExceededFrames.join(
+      `Problem: Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Making the object's setting_description and theme_visuals more concise can help as these are used in every frame. Removing excess character references from the frame.visual_description can greatly reduce  the length of a frame, and likely should be done for frames with more than 2 characters listed. If you remove character references, replace them with some shortened form of the visual description of the character. Frame indices with issue: ${imageWordsExceededFrames.join(
         ', '
       )}`
     );
