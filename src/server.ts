@@ -5,27 +5,20 @@ import express from 'express';
 import basicAuth from 'express-basic-auth';
 import fs from 'fs';
 import multer from 'multer';
-import * as Coqui from './coqui';
-import {
-  createVideoFromImagesAndAudio,
-  deleteFolder,
-  generateSRT,
-  generateTranscripts,
-} from './utilities';
-import * as OpenAI from './openai';
-import * as Stability from './stabilityai';
-import * as LocalDiffusion from './localDiffusion';
+
+import { deleteFolder } from './tools/utilities';
+import * as OpenAi from './services/openai';
+import * as Stability from './services/stabilityai';
+import * as LocalDiffusion from './services/localDiffusion';
 import * as Storyboard from './storyboard';
-import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
+
 import { Readable } from 'stream';
-import { Character } from './types';
 import {
   CoquiAPIError,
   FfmpegError,
   OpenAIAPIError,
   StabilityAPIError,
-} from './exceptions';
+} from './tools/exceptions';
 
 const apiUsers = {
   KwisatzHaderach: process.env.API_TOKEN || '',
@@ -66,75 +59,14 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
   }
 
   try {
-    // Use object destructuring to get name and age
     const prompt = req.body.prompt;
 
-    const gpt_output = await Storyboard.GenerateStoryboard(prompt);
+    const outputVideo = await Storyboard.GenerateStoryboard(prompt);
 
-    console.log(gpt_output);
-
-    const currentWorkingDirectory = process.cwd();
-    const uniqueFolder = path.join(currentWorkingDirectory, 'temp', uuidv4());
-    await fs.promises.mkdir(uniqueFolder, { recursive: true });
-
-    const characters: Character[] = [];
-    for (const x in gpt_output.speakers) {
-      const desc = gpt_output.speakers[x].visual_description;
-      const voice_id = await Coqui.VoiceFromPrompt(
-        gpt_output.speakers[x].voice_description
-      );
-      characters.push({
-        id: gpt_output.speakers[x].id,
-        voiceId: voice_id,
-        description: desc,
-      });
-    }
-
-    const imagePromises = [];
-    const audioPromises = [];
-
-    // Do all images at once
-    for (const x in gpt_output.frames) {
-      imagePromises.push(
-        Stability.GenerateFrame(
-          gpt_output.frames[x].visual_description,
-          characters,
-          gpt_output.theme_visuals,
-          gpt_output.setting_description,
-          uniqueFolder
-        )
-      );
-      audioPromises.push(
-        Coqui.CreateSoundSample(
-          characters[gpt_output.frames[x].speakerId - 1].voiceId,
-          gpt_output.frames[x]['dialog'],
-          gpt_output.frames[x]['emotion'],
-          uniqueFolder,
-          x
-        )
-      );
-    }
-
-    const audioPaths = await Promise.all(audioPromises);
-
-    const outputVideo = `${uniqueFolder}/${gpt_output.name}.mp4`;
-    const transcripts = await generateTranscripts(
-      audioPaths,
-      gpt_output.frames.map((frame) => frame.dialog)
-    );
-    const srtPath = path.join(uniqueFolder, 'subtitles.srt');
-    generateSRT(transcripts, srtPath);
-
-    const imagePaths = await Promise.all(imagePromises);
-    await createVideoFromImagesAndAudio(
-      imagePaths,
-      audioPaths,
-      srtPath,
-      outputVideo
-    );
+    const filePathComponents = outputVideo.split('/');
 
     const fileStream = fs.createReadStream(outputVideo);
-    const fileName = `${gpt_output.name}.mp4`;
+    const fileName = outputVideo.split('/')[filePathComponents.length - 1];
 
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
@@ -142,7 +74,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
     fileStream.pipe(res);
 
     res.on('finish', () => {
-      deleteFolder(uniqueFolder);
+      deleteFolder(`${filePathComponents[0]}${filePathComponents[1]}`);
     });
   } catch (err) {
     if (err instanceof StabilityAPIError) {
@@ -183,7 +115,7 @@ app.post('/promptToImagePrompt', async (req, res) => {
     // Use object destructuring to get name and age
     const prompt = req.body.prompt;
 
-    const gpt_prompt = await Storyboard.GenerateImagePrompt(prompt);
+    const gpt_prompt = await OpenAi.GenerateImagePrompt(prompt);
 
     res.json(gpt_prompt);
   } catch (err) {

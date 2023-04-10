@@ -163,6 +163,9 @@ export function formatTimestamp(timeInSeconds: number) {
     .padStart(3, '0')}`;
 }
 
-export function isEnumKey<K extends string | number | symbol>(e: Record<K, unknown>, key: unknown): key is K {
+export function isEnumKey<K extends string | number | symbol>(
+  e: Record<K, unknown>,
+  key: unknown
+): key is K {
   return Object.values(e).includes(key);
 }

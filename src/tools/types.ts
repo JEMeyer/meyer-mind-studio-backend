@@ -1,4 +1,4 @@
-import { CoquiEmotion } from "./coqui";
+import { CoquiEmotion } from '../services/coqui';
 
 export type Character = {
   id: number;
@@ -55,4 +55,4 @@ export type PrimaryStoryboardResponse = {
   theme_visuals: string;
   speakers: StoryboardSpeaker[];
   frames: StoryboardFrame[];
-}
+};

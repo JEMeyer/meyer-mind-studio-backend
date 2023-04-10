@@ -1,14 +1,14 @@
 import axios from 'axios';
-import { downloadFile, isEnumKey } from './utilities';
-import { CoquiAPIError } from './exceptions';
+import { downloadFile, isEnumKey } from '../tools/utilities';
+import { CoquiAPIError } from '../tools/exceptions';
 
 export enum CoquiEmotion {
-  Neutral= 'Neutral',
-  Happy= 'Happy',
-  Sad= 'Sad',
-  Surprise= 'Surprise',
-  Angry= 'Angry',
-  Dull= 'Dull'
+  Neutral = 'Neutral',
+  Happy = 'Happy',
+  Sad = 'Sad',
+  Surprise = 'Surprise',
+  Angry = 'Angry',
+  Dull = 'Dull',
 }
 
 export async function CreateSoundSample(

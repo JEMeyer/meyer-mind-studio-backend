@@ -1,8 +1,17 @@
-import { ChatCompletionRequestMessage } from "openai";
-import { OpenAIAPIError } from "./exceptions";
-import { validlateMainPrompt } from "./gptValidator";
-import { callGPT } from "./openai";
-import { PrimaryStoryboardResponse } from "./types";
+import { OpenAIAPIError } from './tools/exceptions';
+import { validlateMainPrompt } from './tools/gptValidator';
+import { callGPT } from './services/openai';
+import { Character, PrimaryStoryboardResponse } from './tools/types';
+import path from 'path';
+import {
+  generateTranscripts,
+  generateSRT,
+  createVideoFromImagesAndAudio,
+} from './tools/utilities';
+import * as Coqui from './services/coqui';
+import * as Stability from './services/stabilityai';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 
 const response_prompt1 = `{
     name: 'Jenga Battle',
@@ -62,58 +71,121 @@ const response_prompt1 = `{
 const storyboard_prompt = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with: a name (1-4 words), setting_description (5-15 words describing what is in the background for all frames, such as the town or building they are in), theme_visuals (5-15 words describing an artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speakerId, a visual_description of the speaker (5-10 words, avoid using 'kids', 'boy', or 'girl' for content filter reasons)), and a voice_description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker. Do not include any curly braces in the dialog)). You also return an array of frames. Each frame must include speakerId of the person speaking, brief R-rated dialog (THIS FIELD IS REQUIRED, must be at least 1 word but no more than 50 (hard limit at 250 characters) and do not include any curly braces in the dialog), emotion (pick from ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'], any other  value is invalid), and a visual_description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. If there are any characters that should be drawn in the image, mark them with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}". If you add a character to be drawn in a frame, the speaker is almost always one of the drawn characters. Only include a maximum of 2 speaker references per visual_description). Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's visual_description), the setting, and the theme should be less than 70 words. Here is an example of the JSON I expect back:${response_prompt1}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt:`;
 
 export async function GenerateStoryboard(prompt: string) {
-    let retries = 1;
-    let clarifications = 3;
+  const gpt_output = await GenerateStoryboardText(prompt);
 
-    while (retries > 0) {
-        try {
-            let response =
-                (await callGPT(`${storyboard_prompt}"""${prompt.trim()}"""`)) || '';
-            let parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
-            let errors = validlateMainPrompt(parsedObject);
+  console.log(gpt_output);
 
-            // Retry once
-            if (errors.length > 0) {
-                while (clarifications > 0) {
-                    console.error('Failed validation:', errors.join(', '))
-                    const correctingPrompt =
-                        `I have a JSON object with some constraints I'd like you to help me resolve. I would like you to return to me a modified JSON object, based on the following feedback: ${errors.join('\n')} Do not modify any fields not mentioned in the feedback provided. The JSON object should be identical, but with modifications to avoid thet issues specified. Only reply with the JSON object, as I will do a JSON.decode() to parse the message and expect only that object. I will send the JSON object in the next chat message.`;
+  const currentWorkingDirectory = process.cwd();
+  const uniqueFolder = path.join(currentWorkingDirectory, 'temp', uuidv4());
+  await fs.promises.mkdir(uniqueFolder, { recursive: true });
 
-                    response =
-                        (await callGPT(response, [{ role: 'user', content: correctingPrompt}])) || '';
-                    parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
-                    errors = validlateMainPrompt(parsedObject);
+  const characters: Character[] = [];
+  for (const x in gpt_output.speakers) {
+    const desc = gpt_output.speakers[x].visual_description;
+    const voice_id = await Coqui.VoiceFromPrompt(
+      gpt_output.speakers[x].voice_description
+    );
+    characters.push({
+      id: gpt_output.speakers[x].id,
+      voiceId: voice_id,
+      description: desc,
+    });
+  }
 
-                    if (errors.length === 0) {
-                        return parsedObject
-                    }
-                    clarifications--;
-                }
-                throw new SyntaxError("Max clarifications reached.");
-            }
-            // If parsing is successful, it will return the parsed data and exit the loop
-            return parsedObject;
-        } catch (error) {
-            if (error instanceof SyntaxError) {
-                retries--; // Decrement the retry counter if a SyntaxError is thrown
-                console.error(`Syntax error: ${error}, retries left:${retries}`);
-                if (retries < 0) {
-                    console.error('Out of retries');
-                    throw new OpenAIAPIError();
-                }
-            } else {
-                // If the error is not a SyntaxError, throw it immediately
-                throw new OpenAIAPIError();
-            }
-        }
-    }
-    throw new OpenAIAPIError();
+  const imagePromises = [];
+  const audioPromises = [];
+
+  // Do all images at once
+  for (const x in gpt_output.frames) {
+    imagePromises.push(
+      Stability.GenerateFrame(
+        gpt_output.frames[x].visual_description,
+        characters,
+        gpt_output.theme_visuals,
+        gpt_output.setting_description,
+        uniqueFolder
+      )
+    );
+    audioPromises.push(
+      Coqui.CreateSoundSample(
+        characters[gpt_output.frames[x].speakerId - 1].voiceId,
+        gpt_output.frames[x]['dialog'],
+        gpt_output.frames[x]['emotion'],
+        uniqueFolder,
+        x
+      )
+    );
+  }
+
+  const audioPaths = await Promise.all(audioPromises);
+
+  const outputVideo = `${uniqueFolder}/${gpt_output.name}.mp4`;
+  const transcripts = await generateTranscripts(
+    audioPaths,
+    gpt_output.frames.map((frame) => frame.dialog)
+  );
+  const srtPath = path.join(uniqueFolder, 'subtitles.srt');
+  generateSRT(transcripts, srtPath);
+
+  const imagePaths = await Promise.all(imagePromises);
+  await createVideoFromImagesAndAudio(
+    imagePaths,
+    audioPaths,
+    srtPath,
+    outputVideo
+  );
+
+  return outputVideo;
 }
 
-const image_prompt =
-    'Given a basic prompt, upscale it into a visually engaging description for an image generation model, focusing on key elements and impactful details while avoiding excessive verbosity. The description should be concise yet impressive, capturing the essence of the scene. Limit your response to a maximum of 70 words. If you feel anything is inappropriate in the prompt, rephrase it so it adheres to your content policy. Here is the prompt:';
-export async function GenerateImagePrompt(prompt: string) {
-    const response = await callGPT(image_prompt + prompt.trim());
-    console.log(response);
-    return response;
+async function GenerateStoryboardText(prompt: string) {
+  let retries = 1;
+  let clarifications = 3;
+
+  while (retries > 0) {
+    try {
+      let response =
+        (await callGPT(`${storyboard_prompt}"""${prompt.trim()}"""`)) || '';
+      let parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
+      let errors = validlateMainPrompt(parsedObject);
+
+      // Retry once
+      if (errors.length > 0) {
+        while (clarifications > 0) {
+          console.error('Failed validation:', errors.join(', '));
+          const correctingPrompt = `I have a JSON object with some constraints I'd like you to help me resolve. I would like you to return to me a modified JSON object, based on the following feedback: ${errors.join(
+            '\n'
+          )} Do not modify any fields not mentioned in the feedback provided. The JSON object should be identical, but with modifications to avoid thet issues specified. Only reply with the JSON object, as I will do a JSON.decode() to parse the message and expect only that object. I will send the JSON object in the next chat message.`;
+
+          response =
+            (await callGPT(response, [
+              { role: 'user', content: correctingPrompt },
+            ])) || '';
+          parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
+          errors = validlateMainPrompt(parsedObject);
+
+          if (errors.length === 0) {
+            return parsedObject;
+          }
+          clarifications--;
+        }
+        throw new SyntaxError('Max clarifications reached.');
+      }
+      // If parsing is successful, it will return the parsed data and exit the loop
+      return parsedObject;
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        retries--; // Decrement the retry counter if a SyntaxError is thrown
+        console.error(`Syntax error: ${error}, retries left:${retries}`);
+        if (retries < 0) {
+          console.error('Out of retries');
+          throw new OpenAIAPIError();
+        }
+      } else {
+        // If the error is not a SyntaxError, throw it immediately
+        throw new OpenAIAPIError();
+      }
+    }
+  }
+  throw new OpenAIAPIError();
 }

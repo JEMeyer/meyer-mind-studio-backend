@@ -1,4 +1,4 @@
-import { CoquiEmotion } from './coqui';
+import { CoquiEmotion } from '../services/coqui';
 import { PrimaryStoryboardResponse } from './types';
 
 export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
@@ -42,7 +42,9 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
 
   if (emptyDialogFrames.length > 0) {
     errors.push(
-      `Problem: No frame dialog (at least one word required, add interjection). Frame indices with issue: ${emptyDialogFrames.join(', ')}`
+      `Problem: No frame dialog (at least one word required, add interjection). Frame indices with issue: ${emptyDialogFrames.join(
+        ', '
+      )}`
     );
   } else if (dialogExceededFrames.length > 0) {
     errors.push(
@@ -58,8 +60,14 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
     );
   } else if (invalidEmotionFrames.length > 0) {
     errors.push(
-      `Problem: Emotion is not one of the valid options of [${Object.values(CoquiEmotion).join(', ')}] - pick one that fits the dialog in the frame. Frame indices with issue: ${invalidEmotionFrames.join(', ')}`
-    )
+      `Problem: Emotion is not one of the valid options of [${Object.values(
+        CoquiEmotion
+      ).join(
+        ', '
+      )}] - pick one that fits the dialog in the frame. Frame indices with issue: ${invalidEmotionFrames.join(
+        ', '
+      )}`
+    );
   }
 
   return errors;
