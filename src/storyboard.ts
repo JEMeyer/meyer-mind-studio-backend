@@ -71,7 +71,7 @@ const response_prompt1 = `{
 const storyboard_prompt = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with: a name (1-4 words), setting_description (5-15 words describing what is in the background for all frames, such as the town or building they are in), theme_visuals (5-15 words describing an artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speakerId, a visual_description of the speaker (5-10 words, avoid using 'kids', 'boy', or 'girl' for content filter reasons)), and a voice_description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker. Do not include any curly braces in the dialog)). You also return an array of frames. Each frame must include speakerId of the person speaking, brief R-rated dialog (THIS FIELD IS REQUIRED, must be at least 1 word but no more than 50 (hard limit at 250 characters) and do not include any curly braces in the dialog), emotion (pick from ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'], any other  value is invalid), and a visual_description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. If there are any characters that should be drawn in the image, mark them with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}". If you add a character to be drawn in a frame, the speaker is almost always one of the drawn characters. Only include a maximum of 2 speaker references per visual_description). Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's visual_description), the setting, and the theme should be less than 70 words. Here is an example of the JSON I expect back:${response_prompt1}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt:`;
 
 export async function GenerateStoryboard(prompt: string) {
-  const gpt_output = await GenerateStoryboardText(prompt);
+  const gpt_output = await GenerateStoryboardObject(prompt);
 
   console.log(gpt_output);
 
@@ -138,7 +138,7 @@ export async function GenerateStoryboard(prompt: string) {
   return outputVideo;
 }
 
-async function GenerateStoryboardText(prompt: string) {
+async function GenerateStoryboardObject(prompt: string) {
   let retries = 1;
   let clarifications = 3;
 
