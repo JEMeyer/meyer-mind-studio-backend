@@ -1,3 +1,5 @@
+import { CoquiEmotion } from "./coqui";
+
 export type Character = {
   id: number;
   voiceId: string;
@@ -38,19 +40,19 @@ export type GenerateResponse = {
 
 type StoryboardSpeaker = {
   id: number;
-  description: string;
-  voice_prompt: string;
+  visual_description: string;
+  voice_description: string;
 };
 type StoryboardFrame = {
-  speaker: number;
+  speakerId: number;
   dialog: string;
-  emotion: string;
-  frame_desc: string;
+  emotion: CoquiEmotion;
+  visual_description: string;
 };
 export type PrimaryStoryboardResponse = {
   name: string;
-  setting: string;
-  theme: string;
+  setting_description: string;
+  theme_visuals: string;
   speakers: StoryboardSpeaker[];
   frames: StoryboardFrame[];
-};
+}

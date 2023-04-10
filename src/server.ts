@@ -15,6 +15,7 @@ import {
 import * as OpenAI from './openai';
 import * as Stability from './stabilityai';
 import * as LocalDiffusion from './localDiffusion';
+import * as Storyboard from './storyboard';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { Readable } from 'stream';
@@ -68,7 +69,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
     // Use object destructuring to get name and age
     const prompt = req.body.prompt;
 
-    const gpt_output = await OpenAI.GenerateStoryboard(prompt);
+    const gpt_output = await Storyboard.GenerateStoryboard(prompt);
 
     console.log(gpt_output);
 
@@ -78,9 +79,9 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
 
     const characters: Character[] = [];
     for (const x in gpt_output.speakers) {
-      const desc = gpt_output.speakers[x].description;
+      const desc = gpt_output.speakers[x].visual_description;
       const voice_id = await Coqui.VoiceFromPrompt(
-        gpt_output.speakers[x].voice_prompt
+        gpt_output.speakers[x].voice_description
       );
       characters.push({
         id: gpt_output.speakers[x].id,
@@ -96,16 +97,16 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
     for (const x in gpt_output.frames) {
       imagePromises.push(
         Stability.GenerateFrame(
-          gpt_output.frames[x]['frame_desc'],
+          gpt_output.frames[x].visual_description,
           characters,
-          gpt_output.theme,
-          gpt_output.theme,
+          gpt_output.theme_visuals,
+          gpt_output.setting_description,
           uniqueFolder
         )
       );
       audioPromises.push(
         Coqui.CreateSoundSample(
-          characters[gpt_output.frames[x]['speaker'] - 1].voiceId,
+          characters[gpt_output.frames[x].speakerId - 1].voiceId,
           gpt_output.frames[x]['dialog'],
           gpt_output.frames[x]['emotion'],
           uniqueFolder,
@@ -182,7 +183,7 @@ app.post('/promptToImagePrompt', async (req, res) => {
     // Use object destructuring to get name and age
     const prompt = req.body.prompt;
 
-    const gpt_prompt = await OpenAI.GenerateImagePrompt(prompt);
+    const gpt_prompt = await Storyboard.GenerateImagePrompt(prompt);
 
     res.json(gpt_prompt);
   } catch (err) {

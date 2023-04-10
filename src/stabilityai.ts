@@ -27,7 +27,7 @@ export async function GenerateFrame(
     })) as GenerateResponse;
     return images[0].filePath;
   } catch (e) {
-    console.error(`Error creating image: ${e}`);
+    console.error(e);
     throw new StabilityAPIError();
   }
 }

@@ -1,6 +1,74 @@
 import axios from 'axios';
-import { downloadFile } from './utilities';
+import { downloadFile, isEnumKey } from './utilities';
 import { CoquiAPIError } from './exceptions';
+
+export enum CoquiEmotion {
+  Neutral= 'Neutral',
+  Happy= 'Happy',
+  Sad= 'Sad',
+  Surprise= 'Surprise',
+  Angry= 'Angry',
+  Dull= 'Dull'
+}
+
+export async function CreateSoundSample(
+  voiceId: string,
+  text: string,
+  emotion: string,
+  folder: string,
+  index: string
+) {
+  const local_emotion = isEnumKey(CoquiEmotion, emotion) ? emotion : 'Neutral';
+
+  const options = {
+    method: 'POST',
+    url: 'https://app.coqui.ai/api/v2/samples',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
+    },
+    data: {
+      voice_id: voiceId,
+      name: 'temp',
+      text: text,
+      emotion: local_emotion,
+    },
+  };
+  try {
+    const response = await axios.request(options);
+    const audio_url = response.data.audio_url;
+
+    const audioPath = `${folder}/audio-${index}.wav`;
+    await downloadFile(audio_url, audioPath);
+    return audioPath;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
+}
+
+export async function VoiceFromPrompt(speaker_prompt: string) {
+  const options = {
+    method: 'POST',
+    url: 'https://app.coqui.ai/api/v2/voices/from-prompt/',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
+    },
+    data: {
+      prompt: speaker_prompt,
+      name: 'temp',
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+
+    console.log(response.data);
+    return response.data.id;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
+}
 
 const COQUI_SPEAKERS = [
   {
@@ -129,8 +197,6 @@ const COQUI_SPEAKERS = [
   },
 ];
 
-const COQUI_EMOTIONS = ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'];
-
 const male_names = [
   'Damien Black',
   'Viktor Menelaos',
@@ -173,63 +239,3 @@ export const MaleSpeakers = COQUI_SPEAKERS.filter((speaker) =>
 export const FemaleSpeakers = COQUI_SPEAKERS.filter((speaker) =>
   female_names.includes(speaker.name)
 );
-
-export async function CreateSoundSample(
-  voiceId: string,
-  text: string,
-  emotion: string,
-  folder: string,
-  index: string
-) {
-  const local_emotion =
-    COQUI_EMOTIONS.indexOf(emotion) > 0 ? emotion : 'Neutral';
-
-  const options = {
-    method: 'POST',
-    url: 'https://app.coqui.ai/api/v2/samples',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
-    },
-    data: {
-      voice_id: voiceId,
-      name: 'temp',
-      text: text,
-      emotion: local_emotion,
-    },
-  };
-  try {
-    const response = await axios.request(options);
-    const audio_url = response.data.audio_url;
-
-    const audioPath = `${folder}/audio-${index}.wav`;
-    await downloadFile(audio_url, audioPath);
-    return audioPath;
-  } catch (e) {
-    throw new CoquiAPIError();
-  }
-}
-
-export async function VoiceFromPrompt(speaker_prompt: string) {
-  const options = {
-    method: 'POST',
-    url: 'https://app.coqui.ai/api/v2/voices/from-prompt/',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
-    },
-    data: {
-      prompt: speaker_prompt,
-      name: 'temp',
-    },
-  };
-
-  try {
-    const response = await axios.request(options);
-
-    console.log(response.data);
-    return response.data.id;
-  } catch (e) {
-    throw new CoquiAPIError();
-  }
-}

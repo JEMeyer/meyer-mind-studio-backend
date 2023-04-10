@@ -1,29 +1,35 @@
+import { CoquiEmotion } from './coqui';
 import { PrimaryStoryboardResponse } from './types';
 
 export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
   const emptyDialogFrames = [];
   const dialogExceededFrames = [];
   const imageWordsExceededFrames = [];
+  const invalidEmotionFrames = [];
 
   for (let i = 0; i < object.frames.length; i++) {
     const dialogCharacterCount = object.frames[i].dialog.length;
 
-    let transformedImagePrompt = object.frames[i].frame_desc;
+    let transformedImagePrompt = object.frames[i].visual_description;
     object.speakers.forEach((obj) => {
       const placeholder = `{${obj.id}}`;
       transformedImagePrompt = transformedImagePrompt.replace(
         placeholder,
-        obj.description
+        obj.visual_description
       );
     });
-    const final_prompt = `HD picture of ${transformedImagePrompt} in the style of ${object.theme}. background setting: ${object.setting}`;
+    const final_prompt = `HD picture of ${transformedImagePrompt} in the style of ${object.theme_visuals}. background setting: ${object.setting_description}`;
     const imageWordCount = final_prompt.trim().split(/\s+/).length;
 
-    // coqui audio lengths
+    // coqui audio lengths and emotion
     if (dialogCharacterCount == 0) {
       emptyDialogFrames.push(i);
     } else if (dialogCharacterCount > 250) {
       dialogExceededFrames.push(i);
+    }
+
+    if (!Object.values(CoquiEmotion).includes(object.frames[i].emotion)) {
+      invalidEmotionFrames.push(i);
     }
 
     // stabilityAI prompt length
@@ -36,20 +42,24 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
 
   if (emptyDialogFrames.length > 0) {
     errors.push(
-      `Frame indices with no dialog: ${emptyDialogFrames.join(', ')}`
+      `Problem: No frame dialog (at least one word required, add interjection). Frame indices with issue: ${emptyDialogFrames.join(', ')}`
     );
   } else if (dialogExceededFrames.length > 0) {
     errors.push(
-      `Frame indices with dialog exceeding 250 characters: ${dialogExceededFrames.join(
+      `Problem: Frame dialog exceeding 250 characters (make it more concise). Frame indices with issue: ${dialogExceededFrames.join(
         ', '
       )}`
     );
   } else if (imageWordsExceededFrames.length > 0) {
     errors.push(
-      `Frame indices with combined descriptions (theme, setting, frame_desc (with speaker.description substitution)) over 75 words: ${imageWordsExceededFrames.join(
+      `Problem: Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Removing excess character references from the frame.visual_description is likely a good way, as is making the object's setting_description and theme_visuals more concise. Frame indices with issue: ${imageWordsExceededFrames.join(
         ', '
       )}`
     );
+  } else if (invalidEmotionFrames.length > 0) {
+    errors.push(
+      `Problem: Emotion is not one of the valid options of [${Object.values(CoquiEmotion).join(', ')}] - pick one that fits the dialog in the frame. Frame indices with issue: ${invalidEmotionFrames.join(', ')}`
+    )
   }
 
   return errors;
