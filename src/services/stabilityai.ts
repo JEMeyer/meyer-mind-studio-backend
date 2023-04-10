@@ -1,7 +1,8 @@
 import { generateAsync } from 'stability-client';
 import path from 'path';
-import { Character, GenerateData, GenerateResponse } from '../tools/types';
+import { Character } from '../tools/types';
 import { StabilityAPIError } from '../tools/exceptions';
+import { GenerateResponse, GenerateData } from './types';
 
 export async function GenerateFrame(
   prompt: string,

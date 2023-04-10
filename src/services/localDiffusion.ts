@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GenerateData } from '../tools/types';
+import { GenerateData } from './types';
 
 export async function Generate(data: GenerateData) {
   const response = await axios.post(
