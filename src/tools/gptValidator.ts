@@ -5,7 +5,6 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
   const emptyDialogFrames = [];
   const dialogExceededFrames = [];
   const imageWordsExceededFrames = [];
-  const invalidEmotionFrames = [];
 
   for (let i = 0; i < object.frames.length; i++) {
     const dialogCharacterCount = object.frames[i].dialog.length;
@@ -26,10 +25,6 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
       emptyDialogFrames.push(i);
     } else if (dialogCharacterCount > 250) {
       dialogExceededFrames.push(i);
-    }
-
-    if (!Object.values(CoquiEmotion).includes(object.frames[i].emotion)) {
-      invalidEmotionFrames.push(i);
     }
 
     // stabilityAI prompt length
@@ -55,16 +50,6 @@ export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
   } else if (imageWordsExceededFrames.length > 0) {
     errors.push(
       `Problem: Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Making the object's setting_description and theme_visuals more concise can help as these are used in every frame. Removing excess character references from the frame.visual_description can greatly reduce  the length of a frame, and likely should be done for frames with more than 2 characters listed. If you remove character references, replace them with some shortened form of the visual description of the character. Frame indices with issue: ${imageWordsExceededFrames.join(
-        ', '
-      )}`
-    );
-  } else if (invalidEmotionFrames.length > 0) {
-    errors.push(
-      `Problem: Emotion is not one of the valid options of [${Object.values(
-        CoquiEmotion
-      ).join(
-        ', '
-      )}] - pick one that fits the dialog in the frame. Frame indices with issue: ${invalidEmotionFrames.join(
         ', '
       )}`
     );
