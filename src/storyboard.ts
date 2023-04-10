@@ -77,10 +77,10 @@ export async function GenerateStoryboard(prompt: string) {
                 while (clarifications > 0) {
                     console.error('Failed validation:', errors.join(', '))
                     const correctingPrompt =
-                        `I have a JSON object with some constraints I'd like you to help me resolve. I would like you to return to me a modified JSON object, based on the following feedback: ${errors.join('\n')} Do not modify any fields not mentioned in the feedback provided. The JSON object should be identical, but with modifications to avoid thet issues specified. Only reply with the JSON object, as I will do a JSON.decode() to parse the message and expect only that object. The JSON object is: """${response}"""`;
+                        `I have a JSON object with some constraints I'd like you to help me resolve. I would like you to return to me a modified JSON object, based on the following feedback: ${errors.join('\n')} Do not modify any fields not mentioned in the feedback provided. The JSON object should be identical, but with modifications to avoid thet issues specified. Only reply with the JSON object, as I will do a JSON.decode() to parse the message and expect only that object. I will send the JSON object in the next chat message.`;
 
                     response =
-                        (await callGPT(correctingPrompt)) || '';
+                        (await callGPT(response, [{ role: 'user', content: correctingPrompt}])) || '';
                     parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
                     errors = validlateMainPrompt(parsedObject);
 

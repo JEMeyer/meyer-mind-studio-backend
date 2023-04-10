@@ -22,7 +22,6 @@ export async function callGPT(
   });
 
   const answer = res?.data?.choices[0]?.message?.content;
-  console.log('GPT Prompt', prompt);
   console.log('GPT Response', answer);
   return answer;
 }
