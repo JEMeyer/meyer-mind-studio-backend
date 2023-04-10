@@ -111,7 +111,7 @@ export async function GenerateStoryboard(prompt: string) {
 }
 
 const image_prompt =
-    'Given a basic prompt, upscale it into a visually engaging description for an image generation model, focusing on key elements and impactful details while avoiding excessive verbosity. The description should be concise yet impressive, capturing the essence of the scene. Limit your response to a maximum of 50 words. Here is the prompt:';
+    'Given a basic prompt, upscale it into a visually engaging description for an image generation model, focusing on key elements and impactful details while avoiding excessive verbosity. The description should be concise yet impressive, capturing the essence of the scene. Limit your response to a maximum of 70 words. If you feel anything is inappropriate in the prompt, rephrase it so it adheres to your content policy. Here is the prompt:';
 export async function GenerateImagePrompt(prompt: string) {
     const response = await callGPT(image_prompt + prompt.trim());
     console.log(response);
