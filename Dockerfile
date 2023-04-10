@@ -7,6 +7,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g npm@9.6.4
+
 # Builder stage
 FROM base AS builder
 
@@ -17,8 +19,7 @@ WORKDIR /usr/src/app
 COPY . .
 
 # Install the application dependencies
-RUN npm install -g npm@9.6.4 && \
-    npm install
+RUN npm install
 
 # Build the TypeScript code to JavaScript
 RUN npm run build
