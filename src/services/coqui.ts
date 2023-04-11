@@ -11,6 +11,10 @@ export enum CoquiEmotion {
   Dull = 'Dull',
 }
 
+function removeSpecialChars(str: string) {
+  return str.replace(/[¿¡]/g, '');
+}
+
 export async function CreateSoundSample(
   voiceId: string,
   text: string,
@@ -30,7 +34,7 @@ export async function CreateSoundSample(
     data: {
       voice_id: voiceId,
       name: 'temp',
-      text: text,
+      text: removeSpecialChars(text),
       emotion: local_emotion,
     },
   };
