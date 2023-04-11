@@ -31,16 +31,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 // Enable CORS for all routes
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
 
-console.log('allowedOrigins', allowedOrigins)
-
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', allowedOrigins);
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
-
 app.use(
   cors({
     origin: (origin, callback) => {
