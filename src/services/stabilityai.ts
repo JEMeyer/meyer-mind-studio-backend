@@ -1,6 +1,6 @@
 import { generateAsync } from 'stability-client';
 import path from 'path';
-import { Character } from '../tools/types';
+import { Character } from '../types/types';
 import { StabilityAPIError } from '../tools/exceptions';
 import { GenerateResponse, GenerateData } from './types';
 
