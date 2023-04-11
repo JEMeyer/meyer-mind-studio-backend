@@ -48,6 +48,9 @@ app.use(
   })
 );
 
+// Add the authenticate middleware to the global middleware chain
+app.use(authenticate);
+
 // Middleware for logging all requests using the logger from the request context
 app.use((req: CustomRequest, res: Response, next: NextFunction) => {
   const userId = req.userId || 'unknown';
@@ -87,7 +90,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-app.post('/promptToStoryboard', authenticate, upload.none(), async (req: CustomRequest, res: Response) => {
+app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -131,7 +134,7 @@ app.post('/promptToStoryboard', authenticate, upload.none(), async (req: CustomR
   }
 });
 
-app.post('/promptToImagePrompt', authenticate, async (req: CustomRequest, res: Response) => {
+app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -157,7 +160,7 @@ app.post('/promptToImagePrompt', authenticate, async (req: CustomRequest, res: R
   }
 });
 
-app.post('/promptToImage', authenticate, async (req: CustomRequest, res: Response) => {
+app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
   // Check if requeest body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
