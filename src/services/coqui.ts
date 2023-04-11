@@ -67,7 +67,6 @@ export async function VoiceFromPrompt(speaker_prompt: string) {
   try {
     const response = await axios.request(options);
 
-    console.log(response.data);
     return response.data.id;
   } catch (e) {
     throw new CoquiAPIError();

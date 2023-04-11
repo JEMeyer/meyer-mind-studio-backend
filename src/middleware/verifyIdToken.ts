@@ -33,7 +33,6 @@ export const verifyIdToken = () => async (
 
     next();
   } catch (error) {
-    console.error('Token Verification Failed: ', error)
     res.status(401).json({ message: 'Unauthorized: ID token verification failed.' });
   }
 };

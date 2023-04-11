@@ -12,6 +12,7 @@ import * as Coqui from './services/coqui';
 import * as Stability from './services/stabilityai';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { RequestContext } from './middleware/context';
 
 const response_prompt1 = `{
     name: 'Jenga Battle',
@@ -72,8 +73,6 @@ const storyboard_prompt = `You are a storyboard creator. You create a movie scen
 
 export async function GenerateStoryboard(prompt: string) {
   const gpt_output = await GenerateStoryboardObject(prompt);
-
-  console.log(gpt_output);
 
   const currentWorkingDirectory = process.cwd();
   const uniqueFolder = path.join(currentWorkingDirectory, 'temp', uuidv4());
@@ -141,6 +140,7 @@ export async function GenerateStoryboard(prompt: string) {
 async function GenerateStoryboardObject(prompt: string) {
   let retries = 1;
   let clarifications = 3;
+  const logger = RequestContext.getStore()?.logger;
 
   while (retries > 0) {
     try {
@@ -152,7 +152,6 @@ async function GenerateStoryboardObject(prompt: string) {
       // Retry once
       if (errors.length > 0) {
         while (clarifications > 0) {
-          console.error('Failed validation:', errors.join(', '));
           const correctingPrompt = `I have a JSON object with some constraints I'd like you to help me resolve. I would like you to return to me a modified JSON object, based on the following feedback: ${errors.join(
             '\n'
           )} Do not modify any fields not mentioned in the feedback provided. The JSON object should be identical, but with modifications to avoid thet issues specified. Only reply with the JSON object, as I will do a JSON.decode() to parse the message and expect only that object. I will send the JSON object in the next chat message.`;
@@ -169,6 +168,7 @@ async function GenerateStoryboardObject(prompt: string) {
           }
           clarifications--;
         }
+        logger?.warn(`Max clarifications reached. Final error: ${errors.join(',')}`)
         throw new SyntaxError('Max clarifications reached.');
       }
       // If parsing is successful, it will return the parsed data and exit the loop
@@ -176,13 +176,14 @@ async function GenerateStoryboardObject(prompt: string) {
     } catch (error) {
       if (error instanceof SyntaxError) {
         retries--; // Decrement the retry counter if a SyntaxError is thrown
-        console.error(`Syntax error: ${error}, retries left:${retries}`);
+        logger?.warn(`Syntax error: ${error}, retries left:${retries}`);
         if (retries < 0) {
-          console.error('Out of retries');
+          logger?.warn('Retry limit exceeded.');
           throw new OpenAIAPIError();
         }
       } else {
         // If the error is not a SyntaxError, throw it immediately
+        logger?.error(`Non-syntax error in GenerateStoryboardObject catch: ${error}`)
         throw new OpenAIAPIError();
       }
     }

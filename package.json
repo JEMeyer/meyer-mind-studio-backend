@@ -19,15 +19,19 @@
     "express-basic-auth": "^1.2.1",
     "fluent-ffmpeg": "^2.1.2",
     "google-auth-library": "^8.7.0",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "openai": "^3.2.1",
     "stability-client": "^1.8.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/fluent-ffmpeg": "^2.1.21",
+    "@types/morgan": "^1.9.4",
     "@types/multer": "^1.4.7",
     "@types/node": "^18.15.11",
     "@types/uuid": "^9.0.1",

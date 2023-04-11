@@ -1,11 +1,13 @@
 // Require express
 import dotenv from 'dotenv';
 dotenv.config();
-import express, { Response } from 'express';
+import express, { NextFunction, Response } from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import multer from 'multer';
-
+import  { createLoggerWithUserId } from './middleware/logger';
+import morgan from 'morgan';
+ 
 import { deleteFolder } from './tools/utilities';
 import * as OpenAi from './services/openai';
 import * as Stability from './services/stabilityai';
@@ -21,6 +23,8 @@ import {
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
 import { CustomRequest } from './types/CustomRequest';
+import { RequestContext } from './middleware/context';
+import { timerMiddleware } from './middleware/timer';
 
 // Initialize express
 const app = express();
@@ -30,7 +34,6 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Enable CORS for all routes
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -45,8 +48,36 @@ app.use(
   })
 );
 
+// Middleware for logging all requests using the logger from the request context
+app.use((req: CustomRequest, res: Response, next: NextFunction) => {
+  const userId = req.userId || 'unknown';
+  const logger = createLoggerWithUserId(userId);
+  
+  RequestContext.run({ logger }, () => {
+    morgan('combined', {
+      stream: {
+        write: (message: string) => RequestContext.getStore()?.logger?.info(message.trim()),
+      },
+    })(req, res, next);
+  });
+});
+
+// Error handling middleware using the logger from the request context
+app.use((err: Error, req: CustomRequest, res: Response, next: NextFunction) => {
+  const logger = RequestContext.getStore()?.logger;
+  const userId = req.userId || 'unknown';
+  
+  logger?.error(`User ID: ${userId}, Error: ${err.message}, Request Body: ${JSON.stringify(req.body)}`);
+
+  // Handle the error response here or call the next middleware
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 // parse JSON
 app.use(express.json());
+
+// Set up the timer
+app.use(timerMiddleware);
 
 // parse URL encoded data
 app.use(express.urlencoded({ extended: true }));
@@ -84,28 +115,19 @@ app.post('/promptToStoryboard', authenticate, upload.none(), async (req: CustomR
     });
   } catch (err) {
     if (err instanceof StabilityAPIError) {
-      console.log('StabilityAPIError error');
       res.status(500).statusMessage =
         'Failed during image creation (invalid prompt detected).';
-      res.send();
     } else if (err instanceof OpenAIAPIError) {
-      console.log('OpenAIAPIError error');
       res.status(500).statusMessage = 'Failed during GPT calls.';
-      res.send();
     } else if (err instanceof CoquiAPIError) {
-      console.log('CoquiAPIError error');
       res.status(500).statusMessage = 'Failed during voice creation.';
-      res.send();
     } else if (err instanceof FfmpegError) {
-      console.log('FfmpegError error');
       res.status(500).statusMessage = 'Failed during video creation.';
-      res.send();
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
-      res.send();
     }
-
-    console.error(err);
+    RequestContext.getStore()?.logger.error(`Error caught in /promptToStoryboard with prompt '${req.body.prompt}': ${err}`);
+    res.send();
   }
 });
 
@@ -127,11 +149,11 @@ app.post('/promptToImagePrompt', authenticate, async (req: CustomRequest, res: R
   } catch (err) {
     if (err instanceof OpenAIAPIError) {
       res.status(500).statusMessage = 'Failed during GPT calls.';
-      res.send();
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
-      res.send();
     }
+    RequestContext.getStore()?.logger.error(`Failed promptToImagePrompt with prompt '${req.body.prompt}': ${err}`)
+    res.send()
   }
 });
 
@@ -176,13 +198,12 @@ app.post('/promptToImage', authenticate, async (req: CustomRequest, res: Respons
     stream.pipe(res);
   } catch (err) {
     if (err instanceof StabilityAPIError) {
-      console.log('StabilityAPIError error');
       res.status(500).statusMessage =
         'Failed during image creation (invalid prompt detected).';
-      res.send();
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
-      res.send();
     }
+    RequestContext.getStore()?.logger.error(`Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`);
+    res.send();
   }
 });
