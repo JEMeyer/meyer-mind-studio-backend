@@ -7,7 +7,7 @@ ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
 ffmpeg.setFfprobePath(process.env.FFPROBE_PATH || '');
 
 import os from 'os';
-import { Transcript } from './types';
+import { Transcript } from '../types/types';
 import { FfmpegError } from './exceptions';
 const platform = os.platform();
 

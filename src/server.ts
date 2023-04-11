@@ -1,8 +1,8 @@
 // Require express
 import dotenv from 'dotenv';
 dotenv.config();
-import express from 'express';
-import basicAuth from 'express-basic-auth';
+import express, { Response } from 'express';
+import cors from 'cors';
 import fs from 'fs';
 import multer from 'multer';
 
@@ -19,11 +19,8 @@ import {
   OpenAIAPIError,
   StabilityAPIError,
 } from './tools/exceptions';
-
-const apiUsers = {
-  KwisatzHaderach: process.env.API_TOKEN || '',
-  // Add more users and their secrets as needed
-};
+import { authenticate } from './middleware/authenticate';
+import { CustomRequest } from './types/CustomRequest';
 
 // Initialize express
 const app = express();
@@ -31,11 +28,19 @@ const PORT = 8080;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Security
+// Enable CORS for all routes
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
 app.use(
-  basicAuth({
-    users: apiUsers,
-    unauthorizedResponse: { message: 'Unauthorized' },
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true, // This is required for cookies, authorization headers, etc.
   })
 );
 
@@ -50,7 +55,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-app.post('/promptToStoryboard', upload.none(), async (req, res) => {
+app.post('/promptToStoryboard', authenticate, upload.none(), async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -103,7 +108,7 @@ app.post('/promptToStoryboard', upload.none(), async (req, res) => {
   }
 });
 
-app.post('/promptToImagePrompt', async (req, res) => {
+app.post('/promptToImagePrompt', authenticate, async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -129,7 +134,7 @@ app.post('/promptToImagePrompt', async (req, res) => {
   }
 });
 
-app.post('/promptToImage', async (req, res) => {
+app.post('/promptToImage', authenticate, async (req: CustomRequest, res: Response) => {
   // Check if requeest body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({

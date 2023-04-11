@@ -1,5 +1,5 @@
 import { CoquiEmotion } from '../services/coqui';
-import { PrimaryStoryboardResponse } from './types';
+import { PrimaryStoryboardResponse } from '../types/types';
 
 export function validlateMainPrompt(object: PrimaryStoryboardResponse) {
   const emptyDialogFrames = [];

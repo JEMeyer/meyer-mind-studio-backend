@@ -1,7 +1,7 @@
 import { OpenAIAPIError } from './tools/exceptions';
 import { validlateMainPrompt } from './tools/gptValidator';
 import { callGPT } from './services/openai';
-import { Character, PrimaryStoryboardResponse } from './tools/types';
+import { Character, PrimaryStoryboardResponse } from './types/types';
 import path from 'path';
 import {
   generateTranscripts,
