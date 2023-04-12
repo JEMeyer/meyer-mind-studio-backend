@@ -72,6 +72,9 @@ export function createVideoFromImagesAndAudio(
       .outputOptions([
         '-map [finalv]',
         '-map [outa]',
+        '-c:v libx264',
+        '-profile:v high',
+        '-pix_fmt yuv420p',
         '-c:s mov_text',
         '-metadata:s:s:0 language=eng',
         '-y', // Overwrite output file if it exists
@@ -159,8 +162,8 @@ export function formatTimestamp(timeInSeconds: number) {
   return `${hours.toString().padStart(2, '0')}:${minutes
     .toString()
     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds
-    .toString()
-    .padStart(3, '0')}`;
+      .toString()
+      .padStart(3, '0')}`;
 }
 
 export function isEnumKey<K extends string | number | symbol>(

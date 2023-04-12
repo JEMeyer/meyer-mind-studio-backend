@@ -6,3 +6,8 @@ services:
     env_file: .env
     ports:
       - '12400:8080'
+    volumes:
+      - backend-public-data:/usr/app/src/public 
+
+volumes:
+  backend-public-data:

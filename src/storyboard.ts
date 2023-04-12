@@ -138,11 +138,11 @@ export async function GenerateStoryboard(prompt: string) {
 }
 
 async function GenerateStoryboardObject(prompt: string) {
-  let retries = 1;
+  let attempts = 2;
   let clarifications = 3;
   const logger = RequestContext.getStore()?.logger;
 
-  while (retries > 0) {
+  while (attempts-- >= 0) {
     try {
       let response =
         (await callGPT(`${storyboard_prompt}"""${prompt.trim()}"""`)) || '';
@@ -175,12 +175,7 @@ async function GenerateStoryboardObject(prompt: string) {
       return parsedObject;
     } catch (error) {
       if (error instanceof SyntaxError) {
-        retries--; // Decrement the retry counter if a SyntaxError is thrown
-        logger?.warn(`Syntax error: ${error}, retries left:${retries}`);
-        if (retries < 0) {
-          logger?.warn('Retry limit exceeded.');
-          throw new OpenAIAPIError();
-        }
+        logger?.warn(`Syntax error: ${error}, retries left:${attempts}`);
       } else {
         // If the error is not a SyntaxError, throw it immediately
         logger?.error(`Non-syntax error in GenerateStoryboardObject catch: ${error}`)
@@ -188,5 +183,6 @@ async function GenerateStoryboardObject(prompt: string) {
       }
     }
   }
-  throw new OpenAIAPIError();
+  logger?.warn('Retry limit exceeded.');
+          throw new OpenAIAPIError();
 }

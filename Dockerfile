@@ -36,6 +36,9 @@ COPY --from=builder /usr/src/app/package*.json ./
 # Copy the built JavaScript files from the builder image
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Create the public directory
+RUN mkdir -p /usr/src/app/public
+
 # Install the application dependencies
 RUN npm ci --production
 

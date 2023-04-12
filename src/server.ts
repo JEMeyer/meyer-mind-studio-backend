@@ -7,7 +7,7 @@ import fs from 'fs';
 import multer from 'multer';
 import  { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
- 
+
 import { deleteFolder } from './tools/utilities';
 import * as OpenAi from './services/openai';
 import * as Stability from './services/stabilityai';
@@ -25,12 +25,16 @@ import { authenticate } from './middleware/authenticate';
 import { CustomRequest } from './types/CustomRequest';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
+import path from 'path';
 
 // Initialize express
 const app = express();
 const PORT = 8080;
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+// static can just  be served
+app.use('/static',express.static('/usr/app/src/public'));
 
 // Enable CORS for all routes
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
@@ -102,19 +106,28 @@ app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: R
     const prompt = req.body.prompt;
 
     const outputVideo = await Storyboard.GenerateStoryboard(prompt);
+    // Extract the file name and parent directory using path.basename() and path.dirname()
+    const uuid = path.basename(path.dirname(outputVideo));
+    const fileName = path.basename(outputVideo);
+    const tempDir = path.dirname(outputVideo);
 
-    const filePathComponents = outputVideo.split('/');
+    // TODO: update joebot to use  static routes too
+    if (!req.userId) {
+      const fileStream = fs.createReadStream(outputVideo);
 
-    const fileStream = fs.createReadStream(outputVideo);
-    const fileName = outputVideo.split('/')[filePathComponents.length - 1];
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
 
-    res.setHeader('Content-Type', 'video/mp4');
-    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+      fileStream.pipe(res);
+    } else {
+      // Move the video to publicly shared folder
+      await fs.promises.copyFile(outputVideo, `/usr/app/src/public/${uuid}-${fileName}`);
 
-    fileStream.pipe(res);
-
+      // Return the filename (to then use with /static route)
+      res.json({filePath: `/static/${uuid}-${fileName}`});
+    }
     res.on('finish', () => {
-      deleteFolder(`${filePathComponents[0]}${filePathComponents[1]}`);
+      deleteFolder(tempDir);
     });
   } catch (err) {
     if (err instanceof StabilityAPIError) {
@@ -210,3 +223,6 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
     res.send();
   }
 });
+
+// Serve static files from the 'public' directory under the '/static' path
+app.use('/static', express.static('public'));
