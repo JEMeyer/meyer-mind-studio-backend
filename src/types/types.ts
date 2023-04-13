@@ -1,4 +1,5 @@
 import { CoquiEmotion } from '../services/coqui';
+import { Request } from 'express';
 
 export type Character = {
   id: number;
@@ -29,3 +30,7 @@ export type PrimaryStoryboardResponse = {
   speakers: StoryboardSpeaker[];
   frames: StoryboardFrame[];
 };
+
+export interface CustomRequest extends Request {
+  userId?: string;
+}

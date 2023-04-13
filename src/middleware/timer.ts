@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { RequestContext } from './context';
-import CustomRequest from '../types/customRequest';
+import { RequestContext } from './context'; 
+import { CustomRequest } from '../types/types';
 
 export const timerMiddleware = (req: CustomRequest, res: Response, next: NextFunction) => {
   const startTime = process.hrtime();

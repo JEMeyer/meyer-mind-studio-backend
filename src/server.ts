@@ -22,13 +22,13 @@ import {
   StabilityAPIError,
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
-import CustomRequest from './types/customRequest';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
 import path from 'path';
 import { migrate } from './database/database';
 import { voteOnVideo } from './services/voteService';
 import { addVideo, getVideosWithUpvotes } from './services/videoService';
+import { CustomRequest } from './types/types';
 
 // Initialize express
 const app = express();
