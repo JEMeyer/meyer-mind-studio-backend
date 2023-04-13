@@ -3,6 +3,7 @@ import path from 'path';
 import { Character } from '../types/types';
 import { StabilityAPIError } from '../tools/exceptions';
 import { GenerateResponse, GenerateData } from './types';
+import { RequestContext } from '../middleware/context';
 
 export async function GenerateFrame(
   prompt: string,
@@ -12,6 +13,7 @@ export async function GenerateFrame(
   folder: string
 ) {
   try {
+    let start = performance.now();
     let transformedPrompt = prompt;
     characters.forEach((obj) => {
       const placeholder = `{${obj.id}}`;
@@ -26,6 +28,8 @@ export async function GenerateFrame(
       apiKey: process.env.DREAMSTUDIO_API_KEY || '',
       outDir: folder,
     })) as GenerateResponse;
+    let end = performance.now();
+    RequestContext.getStore()?.logger.info(`Stability GenerateFrame took ${(end - start ) / 1000} seconds`);
     return images[0].filePath;
   } catch (e) {
     console.error(e);
@@ -35,6 +39,7 @@ export async function GenerateFrame(
 
 export async function Generate(data: GenerateData) {
   try {
+    let start = performance.now();
     const { images } = (await generateAsync({
       prompt: data.prompt,
       apiKey: process.env.DREAMSTUDIO_API_KEY || '',
@@ -48,6 +53,8 @@ export async function Generate(data: GenerateData) {
       images[0].filePath
     )}`;
 
+    let end = performance.now();
+    RequestContext.getStore()?.logger.info(`Stability Generate took ${(end - start ) / 1000} seconds`);
     return {
       data: images[0].buffer,
       fileName: fileNameData,

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { RequestContext } from './context';
+import { CustomRequest } from '../types/customRequest';
 
-export const timerMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const timerMiddleware = (req: CustomRequest, res: Response, next: NextFunction) => {
   const startTime = process.hrtime();
   const { method, originalUrl, body } = req;
   res.on('finish', () => {

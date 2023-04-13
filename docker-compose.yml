@@ -8,6 +8,17 @@ services:
       - '12400:8080'
     volumes:
       - backend-public-data:/usr/app/src/public 
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15.2
+    env_file: .env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
 
 volumes:
   backend-public-data:
+  db-data:

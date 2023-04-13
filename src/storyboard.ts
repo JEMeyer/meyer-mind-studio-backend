@@ -134,7 +134,7 @@ export async function GenerateStoryboard(prompt: string) {
     outputVideo
   );
 
-  return outputVideo;
+  return { outputVideo, gpt_output };
 }
 
 async function GenerateStoryboardObject(prompt: string) {

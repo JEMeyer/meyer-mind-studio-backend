@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { downloadFile, isEnumKey } from '../tools/utilities';
 import { CoquiAPIError } from '../tools/exceptions';
+import { RequestContext } from '../middleware/context';
 
 export enum CoquiEmotion {
   Neutral = 'Neutral',
@@ -22,6 +23,7 @@ export async function CreateSoundSample(
   folder: string,
   index: string
 ) {
+  let start = performance.now();
   const local_emotion = isEnumKey(CoquiEmotion, emotion) ? emotion : 'Neutral';
 
   const options = {
@@ -44,6 +46,8 @@ export async function CreateSoundSample(
 
     const audioPath = `${folder}/audio-${index}.wav`;
     await downloadFile(audio_url, audioPath);
+    let end = performance.now();
+    RequestContext.getStore()?.logger.info(`Coqui CreateSoundSample took ${(end - start ) / 1000} seconds`);
     return audioPath;
   } catch (e) {
     throw new CoquiAPIError();

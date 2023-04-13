@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { GenerateData } from './types';
+import { RequestContext } from '../middleware/context';
 
 export async function Generate(data: GenerateData) {
+  let start = performance.now()
   const response = await axios.post(
     'http://192.168.1.99:20020/generate',
     data,
@@ -23,6 +25,8 @@ export async function Generate(data: GenerateData) {
     .split('filename=')[1]
     .replace(/"/g, '');
 
+  let end = performance.now();
+  RequestContext.getStore()?.logger.info(`LocalSD Generate took ${(end - start ) / 1000} seconds`);
   return {
     data: secondResponse.data,
     fileName: `${data.seed}_____${filename}`,

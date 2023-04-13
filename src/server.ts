@@ -22,10 +22,13 @@ import {
   StabilityAPIError,
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
-import { CustomRequest } from './types/CustomRequest';
+import { CustomRequest } from './types/customRequest';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
 import path from 'path';
+import { migrate } from './database/database';
+import { voteOnVideo } from './services/voteService';
+import { addVideo, getVideosWithUpvotes } from './services/videoService';
 
 // Initialize express
 const app = express();
@@ -89,12 +92,23 @@ app.use(timerMiddleware);
 // parse URL encoded data
 app.use(express.urlencoded({ extended: true }));
 
-// create a server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
 
-app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: Response) => {
+// Initialize the database and start the server
+const startServer = async () => {
+  try {
+    await migrate(); // Run the database migrations
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Error initializing the database:', error);
+  }
+};
+
+startServer();
+
+app.post('/promptToStoryboard', upload.none(),  async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -105,14 +119,14 @@ app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: R
   try {
     const prompt = req.body.prompt;
 
-    const outputVideo = await Storyboard.GenerateStoryboard(prompt);
+    const  { outputVideo, gpt_output } = await Storyboard.GenerateStoryboard(prompt);
     // Extract the file name and parent directory using path.basename() and path.dirname()
     const uuid = path.basename(path.dirname(outputVideo));
     const fileName = path.basename(outputVideo);
     const tempDir = path.dirname(outputVideo);
 
     // TODO: update joebot to use  static routes too
-    if (!req.userId) {
+    if (req.header('Authorization')?.split(' ')[0] === 'Basic') {
       const fileStream = fs.createReadStream(outputVideo);
 
       res.setHeader('Content-Type', 'video/mp4');
@@ -123,8 +137,13 @@ app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: R
       // Move the video to publicly shared folder
       await fs.promises.copyFile(outputVideo, `/usr/app/src/public/${uuid}-${fileName}`);
 
+      const publicPath = `/static/${uuid}-${fileName}`;
+
+      // Add to database
+      await addVideo(publicPath, prompt, gpt_output,  gpt_output.name)
+
       // Return the filename (to then use with /static route)
-      res.json({filePath: `/static/${uuid}-${fileName}`});
+      res.json({filePath: publicPath});
     }
     res.on('finish', () => {
       deleteFolder(tempDir);
@@ -147,7 +166,7 @@ app.post('/promptToStoryboard', upload.none(), async (req: CustomRequest, res: R
   }
 });
 
-app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
+app.post('/promptToImagePrompt',  async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -224,5 +243,32 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
   }
 });
 
-// Serve static files from the 'public' directory under the '/static' path
-app.use('/static', express.static('public'));
+app.put('/vote', async (req: CustomRequest, res: Response) => {
+  try {
+    const userId = req.userId; // assuming the userId is stored in a 'user' property on the request object
+    if (!userId) {
+      return res.status(400).json({
+        message: 'Unable to determine userId.',
+      });
+    }
+    const videoId = req.body.videoId;
+    const value = parseInt(req.body.value, 10); // assuming the 'value' parameter is passed in the request body as a string
+
+    await voteOnVideo(userId, videoId, value);
+    res.sendStatus(204); // return a 'no content' response to indicate success
+  } catch (error) {
+    RequestContext.getStore()?.logger.error('Error voting on video:', error);
+    res.status(500).send('An error occurred while voting on the video');
+  }
+});
+
+app.get('/videos', async (req, res) => {
+  try {
+    const videos = await getVideosWithUpvotes(1, 'new');
+
+    res.json(videos);
+  } catch (error) {
+    console.error('Error fetching videos:', error);
+    res.status(500).send('An error occurred while fetching videos');
+  }
+});

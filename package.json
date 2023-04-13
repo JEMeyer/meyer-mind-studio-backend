@@ -4,7 +4,7 @@
   "description": "REST api for p2s",
   "main": "server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node copy-sql-files.js",
     "start": "node dist/index.js",
     "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
     "lint": "eslint --fix \"src/**/*.ts\"",
@@ -22,6 +22,7 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "openai": "^3.2.1",
+    "pg-promise": "^11.4.3",
     "stability-client": "^1.8.0",
     "uuid": "^9.0.0",
     "winston": "^3.8.2",
@@ -42,6 +43,7 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-prettier": "^4.2.1",
     "tsc-watch": "^6.0.0",
+    "tscpaths": "^0.0.9",
     "typescript": "^5.0.4"
   }
 }

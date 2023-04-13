@@ -3,7 +3,7 @@ FROM node:bullseye AS base
 
 # Install ffmpeg
 RUN apt-get update && \
-    apt-get install -y ffmpeg && \
+    apt-get install -y ffmpeg postgresql-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -49,4 +49,4 @@ RUN npm install -g pm2
 EXPOSE 8080
 
 # Start the application
-CMD ["pm2-runtime", "dist/server.js"]
+CMD ["pm2-runtime", "dist/server.js" , "-i", "1"]

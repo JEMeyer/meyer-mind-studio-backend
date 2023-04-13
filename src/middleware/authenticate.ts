@@ -9,7 +9,7 @@ const apiUsers = {
 
 export const authenticate = [
   (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/static')) {
+    if (req.path.startsWith('/static') || req.path.startsWith('/videos')) {
       return next();
     }
 
@@ -19,7 +19,11 @@ export const authenticate = [
       basicAuth({
         users: apiUsers,
         unauthorizedResponse: { message: 'Unauthorized' },
-      })(req, res, next);
+      })(req, res, () => {
+        // Set the userId to the authenticated user
+        (req as any).userId = req.auth?.user || 'UNKNOWN  API USER';
+        next();
+      });
     } else {
       verifyIdToken()(req, res, next);
     }
