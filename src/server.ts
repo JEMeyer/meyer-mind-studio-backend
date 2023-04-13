@@ -22,7 +22,7 @@ import {
   StabilityAPIError,
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
-import { CustomRequest } from './types/customRequest';
+import CustomRequest from './types/customRequest';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
 import path from 'path';
