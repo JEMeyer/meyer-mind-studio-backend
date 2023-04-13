@@ -262,9 +262,9 @@ app.put('/vote', async (req: CustomRequest, res: Response) => {
   }
 });
 
-app.get('/videos', async (req, res) => {
+app.get('/videos', async (req: CustomRequest, res) => {
   try {
-    const videos = await getVideosWithUpvotes(1, 'new');
+    const videos = await getVideosWithUpvotes(1, 'new', req.userId);
 
     res.json(videos);
   } catch (error) {

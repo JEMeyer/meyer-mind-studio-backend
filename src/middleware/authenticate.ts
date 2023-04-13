@@ -9,11 +9,13 @@ const apiUsers = {
 
 export const authenticate = [
   (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/static') || req.path.startsWith('/videos')) {
+    const authType = req.header('Authorization')?.split(' ')[0];
+
+    // Let them through if they are hitting the static endpoint, or  videos with no authType
+    // We want to flow through the auth for signed-in reqeusts so we can get the userId later.
+    if (req.path.startsWith('/static') || (req.path.startsWith('/videos') && !authType)) {
       return next();
     }
-
-    const authType = req.header('Authorization')?.split(' ')[0];
 
     if (authType === 'Basic') {
       basicAuth({

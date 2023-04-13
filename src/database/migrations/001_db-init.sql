@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS videos (
 );
 
 CREATE TABLE IF NOT EXISTS votes (
-    user_id INTEGER NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     video_id INTEGER NOT NULL,
     value INTEGER NOT NULL,
     FOREIGN KEY (video_id) REFERENCES videos(id),

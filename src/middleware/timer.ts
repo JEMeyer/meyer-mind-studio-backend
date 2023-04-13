@@ -9,6 +9,7 @@ export const timerMiddleware = (req: CustomRequest, res: Response, next: NextFun
     const elapsed = process.hrtime(startTime);
     const elapsedSeconds = elapsed[0] + elapsed[1] / 1e9;
     const logger = RequestContext.getStore()?.logger;
+
     if (logger) {
       logger.info(`Request ${method} ${originalUrl} with body ${JSON.stringify(body)} took ${elapsedSeconds.toFixed(3)} seconds`);
     }
