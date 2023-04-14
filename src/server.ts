@@ -266,7 +266,9 @@ app.get('/videos', async (req: CustomRequest, res) => {
   try {
     const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';;
     const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';;
-    const videos = await getVideosWithUpvotes(1, sorting, req.userId, timeframe);
+    const page =  Number(req.query.page) || 1;
+    
+    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe);
 
     res.json(videos);
   } catch (error) {

@@ -43,7 +43,7 @@ export const getVideosWithUpvotes = async (pageNumber: number, order?: string, u
           LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = $1
           WHERE 1=1 ${timeFrameCondition}
           ORDER BY ${orderBy}
-          LIMIT 40 OFFSET (($2 - 1) * 40);
+          LIMIT 10 OFFSET (($2 - 1) * 10);
       `;
 
     try {
