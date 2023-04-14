@@ -1,9 +1,9 @@
 import db from '../database/database';
 import { PrimaryStoryboardResponse } from '../types/types';
 
-export const addVideo = async (publicPath: string, prompt: string, data: PrimaryStoryboardResponse, name: string) => {
+export const addVideo = async (publicPath: string, prompt: string, data: PrimaryStoryboardResponse, name: string, userId: string) => {
     try {
-        await db.result('INSERT INTO videos (public_path, prompt, data, name) VALUES ($1, $2, $3, $4);', [publicPath, prompt, data, name]);
+        await db.result('INSERT INTO videos (public_path, prompt, data, name, created_by) VALUES ($1, $2, $3, $4, $5);', [publicPath, prompt, data, name, userId]);
     } catch (error) {
         throw new Error(`An error occurred while adding video: ${error}`);
     }

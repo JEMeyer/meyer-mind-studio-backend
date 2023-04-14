@@ -140,7 +140,7 @@ app.post('/promptToStoryboard', upload.none(),  async (req: CustomRequest, res: 
       const publicPath = `/static/${uuid}-${fileName}`;
 
       // Add to database
-      await addVideo(publicPath, prompt, gpt_output,  gpt_output.name)
+      await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
 
       // Return the filename (to then use with /static route)
       res.json({filePath: publicPath});
