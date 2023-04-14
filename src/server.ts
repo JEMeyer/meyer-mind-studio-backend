@@ -27,7 +27,7 @@ import { timerMiddleware } from './middleware/timer';
 import path from 'path';
 import { migrate } from './database/database';
 import { voteOnVideo } from './services/voteService';
-import { addVideo, getVideosWithUpvotes } from './services/videoService';
+import { addVideo, getVideoById, getVideosWithUpvotes } from './services/videoService';
 import { CustomRequest } from './types/types';
 
 // Initialize express
@@ -140,10 +140,10 @@ app.post('/promptToStoryboard', upload.none(),  async (req: CustomRequest, res: 
       const publicPath = `/static/${uuid}-${fileName}`;
 
       // Add to database
-      await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
+      const videoId = await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
 
       // Return the filename (to then use with /static route)
-      res.json({filePath: publicPath});
+      res.json({filePath: publicPath, videoId});
     }
     res.on('finish', () => {
       deleteFolder(tempDir);
@@ -267,12 +267,35 @@ app.get('/videos', async (req: CustomRequest, res) => {
     const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';;
     const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';;
     const page =  Number(req.query.page) || 1;
-    
+
     const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe);
 
     res.json(videos);
   } catch (error) {
-    console.error('Error fetching videos:', error);
+    RequestContext.getStore()?.logger.error('Error fetching videos:', error);
     res.status(500).send('An error occurred while fetching videos');
+  }
+});
+
+app.get('/videos/:id', async (req: CustomRequest, res) => {
+  try {
+    const videoId = req.params.id;
+
+    if (!videoId) {
+      res.status(400).send('Invalid video ID');
+      return;
+    }
+
+    const video = await getVideoById(videoId, req.userId);
+
+    if (!video) {
+      res.status(404).send('Video not found');
+      return;
+    }
+
+    res.json(video);
+  } catch (error) {
+    RequestContext.getStore()?.logger.error('Error fetching video:', error);
+    res.status(500).send('An error occurred while fetching video');
   }
 });

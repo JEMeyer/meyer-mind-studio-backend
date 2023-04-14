@@ -4,7 +4,8 @@ import { PrimaryStoryboardResponse } from '../types/types';
 
 export const addVideo = async (publicPath: string, prompt: string, data: PrimaryStoryboardResponse, name: string, userId: string) => {
     try {
-        await db.result('INSERT INTO videos (public_path, prompt, data, name, created_by) VALUES ($1, $2, $3, $4, $5);', [publicPath, prompt, data, name, userId]);
+        const result = await db.one('INSERT INTO videos (public_path, prompt, data, name, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id;', [publicPath, prompt, data, name, userId]);
+        return result.id;
     } catch (error) {
         throw new Error(`An error occurred while adding video: ${error}`);
     }
@@ -52,3 +53,22 @@ export const getVideosWithUpvotes = async (pageNumber: number, order?: string, u
         throw new Error(`An error occurred while fetching videos: ${error}`);
     }
 }
+
+export const getVideoById = async (videoId: string, userId?: string) => {
+    const query = `
+      WITH vote_summary AS (
+          SELECT video_id, SUM(value) as total_votes
+          FROM votes
+          GROUP BY video_id
+      )
+      SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, vs.total_votes, uv.value as user_vote
+      FROM videos v
+      LEFT JOIN vote_summary vs ON v.id = vs.video_id
+      LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = $1
+      WHERE v.id = $2;
+    `;
+  
+    const result = await db.one(query, [userId, videoId]);
+    return result;
+  }
+  
