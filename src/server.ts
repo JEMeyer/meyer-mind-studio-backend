@@ -264,11 +264,12 @@ app.put('/vote', async (req: CustomRequest, res: Response) => {
 
 app.get('/videos', async (req: CustomRequest, res) => {
   try {
-    const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';;
-    const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';;
+    const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
+    const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
+    const filterByUser = typeof req.query.userContentOnly === 'string' ? Boolean(req.query.timeframe) : false;
     const page =  Number(req.query.page) || 1;
 
-    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe);
+    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe, filterByUser);
 
     res.json(videos);
   } catch (error) {

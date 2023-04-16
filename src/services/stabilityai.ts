@@ -5,6 +5,13 @@ import { StabilityAPIError } from '../tools/exceptions';
 import { GenerateResponse, GenerateData } from './types';
 import { RequestContext } from '../middleware/context';
 
+export const StabilityBestPractices = `To create a visual description for Stability AI, follow these best practices: 
+1. Be specific and concise: Use specific terms and keep the description under 20 words.
+2. Use correct terminology: Use appropriate terms for objects, colors, and actions.
+3. Weighted terms: Include weights for important terms to influence the AI's focus. Example: "fujifilm: 1 | centered: .1".
+4. Balance weights: Avoid using extreme weights. Keep them between 0.01 and 1.
+`
+
 export async function GenerateFrame(
   prompt: string,
   characters: Character[],

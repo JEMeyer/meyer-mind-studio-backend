@@ -69,7 +69,79 @@ const response_prompt1 = `{
       }
     ]
   }`;
-const storyboard_prompt = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with: a name (1-4 words), setting_description (5-15 words describing what is in the background for all frames, such as the town or building they are in), theme_visuals (5-15 words describing an artistic style or painter, be verbose, similar to the sample JSON provided later), speakers (mapping a speakerId, a visual_description of the speaker (5-10 words, avoid using 'kids', 'boy', or 'girl' for content filter reasons)), and a voice_description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker. Do not include any curly braces in the dialog)). You also return an array of frames. Each frame must include speakerId of the person speaking, brief R-rated dialog (THIS FIELD IS REQUIRED, must be at least 1 word but no more than 50 (hard limit at 250 characters) and do not include any curly braces in the dialog), emotion (pick from ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'], any other  value is invalid), and a visual_description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. If there are any characters that should be drawn in the image, mark them with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}". If you add a character to be drawn in a frame, the speaker is almost always one of the drawn characters. Only include a maximum of 2 speaker references per visual_description). Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's visual_description), the setting, and the theme should be less than 70 words. Here is an example of the JSON I expect back:${response_prompt1}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt:`;
+const storyboard_prompt = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with: a name (1-4 words), theme (5-15 words describing what is in the background for all frames, such as the town or building they are in), theme (5-15 words describing an artistic style or painter, be specific, similar to the sample JSON provided later), speakers (mapping a speakerId, a visual_description of the speaker (5-10 words, avoid using 'kids', 'boy', or 'girl' for content filter reasons)), and a voice_description of the speakers voice (use singlar case (eg 'student' and not 'students'), for the description of the voice, be sure to include the gender of the speaker. Do not include any curly braces in the dialog)).
+You also return an array of frames. Each frame must include speakerId of the person speaking, brief R-rated dialog (THIS FIELD IS REQUIRED, must be at least 1 word but no more than 50 (hard limit at 200 characters) and do not include any curly braces in the dialog), emotion (pick from ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'], any other  value is invalid), and a visual_description of the visuals in the frame (only include words relevant to paint the frame and use present participle form, reference the speaker numbers as characters so I know which characters to draw in the scene. If there are any characters that should be drawn in the image, mark them with {}, so if you want to say that "character 1 looks at character 2", put in "{1} looks at {2}". If you add a character to be drawn in a frame, the speaker is almost always one of the drawn characters. Only include a maximum of 2 speaker references per visual_description). Combined descriptions (theme_visuals, setting_description, frame.visual_description (with speaker.visual_description substitutions eg "{1} stands up" becomes "speaker1.visual_description stands up" but with the actual substitution done)) over 65 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. The combined length of each frame's frame_desc (including substituting {1} for character 1's visual_description), the setting, and the theme should be less than 70 words. Here is an example of the JSON I expect back:${response_prompt1}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt:`;
+const sampleObject2 = `{
+  "name": "Harry Meets the Simpsons",
+  "theme": "cartoonish, colorful, magical, whimsical, bright",
+  "setting": "Springfield, Simpson's house, living room, cozy, animated",
+  "speakers": [
+    {
+      "id": 1,
+      "visual_description": "Harry Potter, glasses, scar, wizard, robe",
+      "voice_description": "young male, British accent, confident"
+    },
+    {
+      "id": 2,
+      "visual_description": "Homer Simpson, bald, overweight, white shirt, blue pants",
+      "voice_description": "adult male, American accent, slightly dopey"
+    },
+    {
+      "id": 3,
+      "visual_description": "Marge Simpson, tall blue hair, green dress, pearls",
+      "voice_description": "adult female, American accent, gentle and caring"
+    }
+  ],
+  "frames": [
+    {
+      "speakerId": 1,
+      "dialog": "Wow, this place looks interesting!",
+      "emotion": "Surprise",
+      "visual_description": "{1} entering Springfield : 0.7, magical aura surrounding him : 0.3"
+    },
+    {
+      "speakerId": 2,
+      "dialog": "Hey, who's the new kid in town?",
+      "emotion": "Neutral",
+      "visual_description": "{2} looking curious : 0.6, {1} from a distance : 0.4"
+    },
+    {
+      "speakerId": 3,
+      "dialog": "Why don't you invite him over, Homer?",
+      "emotion": "Happy",
+      "visual_description": "{3} smiling at {2} : 0.6, Simpson's living room : 0.4"
+    },
+    {
+      "speakerId": 1,
+      "dialog": "Thanks for having me. I'm Harry Potter.",
+      "emotion": "Neutral",
+      "visual_description": "{1} entering Simpson's house : 0.5, Simpsons gathered to welcome : 0.5"
+    },
+    {
+      "speakerId": 2,
+      "dialog": "D'oh! A wizard? This is gonna be fun!",
+      "emotion": "Surprise",
+      "visual_description": "{2} looking excited : 0.6, {1} showing a small magic trick : 0.4"
+    },
+    {
+      "speakerId": 3,
+      "dialog": "Welcome, Harry! Make yourself at home.",
+      "emotion": "Happy",
+      "visual_description": "{3} offering a seat to {1} : 0.7, warm atmosphere in the room : 0.3"
+    }
+  ]
+}
+`
+const storyboard_prompt2 = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object with: a name (1-4 words), setting (3-5 words describing the background setting), theme (3-5 words describing the artistic style or painter), speakers (mapping a speakerId, a list of keywords describing the speaker's appearance (3-5 words)), and voice_description of the speaker's voice (use singular case, for the description of the voice, be sure to include the gender of the speaker).
+
+You also return an array of frames. Each frame must include speakerId of the person speaking, brief R-rated dialog (THIS FIELD IS REQUIRED, must be at least 1 word but no more than 50 (hard limit at 200 characters) and do not include any curly braces in the dialog), emotion (pick from ['Neutral', 'Happy', 'Sad', 'Surprise', 'Angry', 'Dull'], any other value is invalid), and a visual_description for the frame following the Stability AI best practices. Use the theme, setting, and speaker.visual_description to create a weighted visual description. Make sure the description is concise, specific, uses correct terminology, and has balanced weights.
+
+Combined descriptions (theme, setting, speaker.visual_description) should be under 15 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. Think of interesting things that will happen as a result of the prompt.
+
+Here is an example of the JSON I expect back:${sampleObject2}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt: 
+`
+
+
 
 export async function GenerateStoryboard(prompt: string) {
   const gpt_output = await GenerateStoryboardObject(prompt);
@@ -145,7 +217,7 @@ async function GenerateStoryboardObject(prompt: string) {
   while (attempts-- >= 0) {
     try {
       let response =
-        (await callGPT(`${storyboard_prompt}"""${prompt.trim()}"""`)) || '';
+        (await callGPT(`${storyboard_prompt2}"""${prompt.trim()}"""`, [{role: 'user', content: Stability.StabilityBestPractices}])) || '';
       let parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
       let errors = validlateMainPrompt(parsedObject);
 

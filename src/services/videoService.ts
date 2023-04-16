@@ -11,7 +11,13 @@ export const addVideo = async (publicPath: string, prompt: string, data: Primary
     }
 };
 
-export const getVideosWithUpvotes = async (pageNumber: number, order?: string, userId?: string, timeframe?:  string) => {
+export const getVideosWithUpvotes = async (
+    pageNumber: number,
+    order?: string,
+    userId?: string,
+    timeframe?: string,
+    filterByUser = false
+  ) => {
     const timeFrameFilter = (timeframe: string) => {
         switch (timeframe) {
           case 'day':
@@ -25,13 +31,15 @@ export const getVideosWithUpvotes = async (pageNumber: number, order?: string, u
             return '';
         }
       };
-      
+    
       const orderBy = order === 'new'
         ? 'v.created_at DESC'
         : `CASE WHEN vs.total_votes IS NULL THEN 0 ELSE vs.total_votes END DESC, v.created_at DESC`;
-      
+    
       const timeFrameCondition = timeFrameFilter(timeframe || '');
-      
+    
+      const userFilterCondition = filterByUser && userId ? `AND v.created_by = '${userId}'` : '';
+    
       const query = `
           WITH vote_summary AS (
               SELECT video_id, SUM(value) as total_votes
@@ -42,16 +50,16 @@ export const getVideosWithUpvotes = async (pageNumber: number, order?: string, u
           FROM videos v
           LEFT JOIN vote_summary vs ON v.id = vs.video_id
           LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = $1
-          WHERE 1=1 ${timeFrameCondition}
+          WHERE 1=1 ${timeFrameCondition} ${userFilterCondition}
           ORDER BY ${orderBy}
           LIMIT 10 OFFSET (($2 - 1) * 10);
       `;
-
-    try {
+    
+      try {
         return await db.any(query, [userId, pageNumber || 1]);
-    } catch (error) {
+      } catch (error) {
         throw new Error(`An error occurred while fetching videos: ${error}`);
-    }
+      }
 }
 
 export const getVideoById = async (videoId: string, userId?: string) => {

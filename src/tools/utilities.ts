@@ -172,3 +172,16 @@ export function isEnumKey<K extends string | number | symbol>(
 ): key is K {
   return Object.values(e).includes(key);
 }
+
+export function safeStringify(obj: any) {
+  const cache = new Set();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (cache.has(value)) {
+        return; // Exclude circular references
+      }
+      cache.add(value);
+    }
+    return value;
+  });
+}
