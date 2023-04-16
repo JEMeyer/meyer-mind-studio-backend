@@ -266,7 +266,7 @@ app.get('/videos', async (req: CustomRequest, res) => {
   try {
     const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
     const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
-    const filterByUser = typeof req.query.userContentOnly === 'string' ? Boolean(req.query.userContentOnly) : false;
+    const filterByUser = req.query.userContentOnly === 'true';
     const page =  Number(req.query.page) || 1;
 
     const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe, filterByUser);
