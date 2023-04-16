@@ -138,7 +138,7 @@ You also return an array of frames. Each frame must include speakerId of the per
 
 Combined descriptions (theme, setting, speaker.visual_description) should be under 15 words. Using the prompt, create information to properly describe a full movie recap, and use this as the basis for the dialog. Think of interesting things that will happen as a result of the prompt.
 
-Here is an example of the JSON I expect back:${sampleObject2}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Prompt: 
+Here is an example of the JSON I expect back:${sampleObject2}\nI will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Be sure to include at least 4 frames in the output. Prompt: 
 `
 
 
