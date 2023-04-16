@@ -34,6 +34,7 @@ export async function GenerateFrame(
       prompt: `HD picture of ${transformedPrompt} in the style of ${theme}. background setting: ${setting}`,
       apiKey: process.env.DREAMSTUDIO_API_KEY || '',
       outDir: folder,
+      engine: 'stable-diffusion-512-v2-1',
     })) as GenerateResponse;
     let end = performance.now();
     RequestContext.getStore()?.logger.info(`Stability GenerateFrame took ${(end - start ) / 1000} seconds`);
@@ -54,6 +55,7 @@ export async function Generate(data: GenerateData) {
       steps: data.steps,
       cfgScale: data.scale,
       noStore: true,
+      engine: 'stable-diffusion-512-v2-1',
     })) as GenerateResponse;
 
     const fileNameData = `${data.seed}_____${path.basename(
