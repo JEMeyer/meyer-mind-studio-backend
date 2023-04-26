@@ -140,10 +140,10 @@ app.post('/promptToStoryboard', upload.none(),  async (req: CustomRequest, res: 
       const publicPath = `/static/${uuid}-${fileName}`;
 
       // Add to database
-      const videoId = await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
+      const video = await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
 
       // Return the filename (to then use with /static route)
-      res.json({filePath: publicPath, videoId});
+      res.json(video);
     }
     res.on('finish', () => {
       deleteFolder(tempDir);
@@ -267,9 +267,10 @@ app.get('/videos', async (req: CustomRequest, res) => {
     const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
     const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
     const filterByUser = req.query.userContentOnly === 'true';
+    const likedVideosOnly = req.query.likedVideos === 'true';
     const page =  Number(req.query.page) || 1;
 
-    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe, filterByUser);
+    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe, filterByUser, likedVideosOnly);
 
     res.json(videos);
   } catch (error) {
