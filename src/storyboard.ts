@@ -153,7 +153,7 @@ export async function GenerateStoryboard(prompt: string) {
   const characters: Character[] = [];
   for (const x in gpt_output.speakers) {
     const desc = gpt_output.speakers[x].visual_description;
-    const voice_id = await Coqui.VoiceFromPrompt(
+    const voice_id = await Coqui.XTTSVoiceFromPrompt(
       gpt_output.speakers[x].voice_description
     );
     characters.push({
@@ -178,10 +178,9 @@ export async function GenerateStoryboard(prompt: string) {
       )
     );
     audioPromises.push(
-      Coqui.CreateSoundSample(
+      Coqui.CreateXTTSSoundSample(
         characters[gpt_output.frames[x].speakerId - 1].voiceId,
         gpt_output.frames[x]['dialog'],
-        gpt_output.frames[x]['emotion'],
         uniqueFolder,
         x
       )

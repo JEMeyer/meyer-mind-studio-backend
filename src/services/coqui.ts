@@ -54,10 +54,67 @@ export async function CreateSoundSample(
   }
 }
 
+export async function CreateXTTSSoundSample(
+  voiceId: string,
+  text: string,
+  folder: string,
+  index: string
+) {
+  let start = performance.now();
+
+  const options = {
+    method: 'POST',
+    url: 'https://app.coqui.ai/api/v2/samples/xtts/render/',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
+    },
+    data: {
+      voice_id: voiceId,
+      text: removeSpecialChars(text),
+    },
+  };
+  try {
+    const response = await axios.request(options);
+    const audio_url = response.data.audio_url;
+
+    const audioPath = `${folder}/audio-${index}.wav`;
+    await downloadFile(audio_url, audioPath);
+    let end = performance.now();
+    RequestContext.getStore()?.logger.info(`Coqui CreateSoundSample took ${(end - start ) / 1000} seconds`);
+    return audioPath;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
+}
+
 export async function VoiceFromPrompt(speaker_prompt: string) {
   const options = {
     method: 'POST',
     url: 'https://app.coqui.ai/api/v2/voices/from-prompt/',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
+    },
+    data: {
+      prompt: speaker_prompt,
+      name: 'temp',
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+
+    return response.data.id;
+  } catch (e) {
+    throw new CoquiAPIError();
+  }
+}
+
+export async function XTTSVoiceFromPrompt(speaker_prompt: string) {
+    const options = {
+    method: 'POST',
+    url: 'https://app.coqui.ai/api/v2/voices/xtts/from-prompt/',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
