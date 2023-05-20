@@ -1,6 +1,6 @@
 import { OpenAIAPIError } from './tools/exceptions';
 import { validlateMainPrompt } from './tools/gptValidator';
-import { callGPT } from './services/openai';
+import { callGPT, callGPT4 } from './services/openai';
 import { Character, PrimaryStoryboardResponse } from './types/types';
 import path from 'path';
 import {
@@ -216,7 +216,7 @@ async function GenerateStoryboardObject(prompt: string) {
   while (attempts-- >= 0) {
     try {
       let response =
-        (await callGPT(`${storyboard_prompt2}"""${prompt.trim()}"""`, [{role: 'user', content: Stability.StabilityBestPractices}])) || '';
+        (await callGPT4(`${storyboard_prompt2}"""${prompt.trim()}"""`, [{role: 'user', content: Stability.StabilityBestPractices}])) || '';
       let parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
       let errors = validlateMainPrompt(parsedObject);
 

@@ -1,6 +1,5 @@
 declare module 'sox-audio' {
-    export class SoxCommand {
-        constructor();
+    interface SoxCommand {
         input(file: string): this;
         inputFileType(type: string): this;
         output(file: string): this;
@@ -8,4 +7,6 @@ declare module 'sox-audio' {
         addEffect(effect: string, options: Array<number | string>): this;
         run(callback: (err: Error) => void): void;
     }
-  }
+
+    export function create(): SoxCommand;
+}

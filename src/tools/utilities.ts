@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { SoxCommand } from 'sox-audio';
+import { create as createSoxCommand } from 'sox-audio';
 
 import ffmpeg from 'fluent-ffmpeg';
 ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
@@ -140,7 +140,7 @@ export async function generateTranscripts(
 export async function trimAudioFile(filepath: string, silenceThreshold = 0.1, silenceDuration = 1): Promise<void> {
   try {
     // Create a new SoxCommand instance
-    const command = new SoxCommand();
+    const command = createSoxCommand();
 
     command.input(filepath)
         .inputFileType('wav')
