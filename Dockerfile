@@ -1,9 +1,9 @@
 # Base image for both builder and runner
 FROM node:bullseye AS base
 
-# Install ffmpeg
+# Install ffmpeg, sox, and postgresql-client
 RUN apt-get update && \
-    apt-get install -y ffmpeg postgresql-client && \
+    apt-get install -y ffmpeg sox postgresql-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

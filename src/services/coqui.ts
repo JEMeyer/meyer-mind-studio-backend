@@ -50,6 +50,7 @@ export async function CreateSoundSample(
     RequestContext.getStore()?.logger.info(`Coqui CreateSoundSample took ${(end - start ) / 1000} seconds`);
     return audioPath;
   } catch (e) {
+    console.error(e);
     throw new CoquiAPIError();
   }
 }
@@ -84,6 +85,7 @@ export async function CreateXTTSSoundSample(
     RequestContext.getStore()?.logger.info(`Coqui CreateSoundSample took ${(end - start ) / 1000} seconds`);
     return audioPath;
   } catch (e) {
+    console.error(e);
     throw new CoquiAPIError();
   }
 }
@@ -107,6 +109,7 @@ export async function VoiceFromPrompt(speaker_prompt: string) {
 
     return response.data.id;
   } catch (e) {
+    console.error(e);
     throw new CoquiAPIError();
   }
 }
@@ -130,6 +133,7 @@ export async function XTTSVoiceFromPrompt(speaker_prompt: string) {
 
     return response.data.id;
   } catch (e) {
+    console.error(e);
     throw new CoquiAPIError();
   }
 }

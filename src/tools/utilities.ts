@@ -1,7 +1,10 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { create as createSoxCommand } from 'sox-audio';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execPromisified = promisify(exec);
 
 import ffmpeg from 'fluent-ffmpeg';
 ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
@@ -138,23 +141,12 @@ export async function generateTranscripts(
 
 // Create a function to trim the audio
 export async function trimAudioFile(filepath: string, silenceThreshold = 0.1, silenceDuration = 1): Promise<void> {
+  // Create a sox command to trim silence
+  const command = `sox ${filepath} ${filepath} silence 1 ${silenceDuration} ${silenceThreshold + 'd'} -1 ${silenceDuration} ${silenceThreshold + 'd'}`;
+
   try {
-    // Create a new SoxCommand instance
-    const command = createSoxCommand();
-
-    command.input(filepath)
-        .inputFileType('wav')
-        .output(filepath)  // Overwrite original file
-        .outputFileType('wav')
-        .addEffect('silence', [1, silenceDuration, silenceThreshold + 'd', '-1', silenceDuration, silenceThreshold + 'd']);
-
     // Execute the command
-    await new Promise<void>((resolve, reject) => {
-        command.run((err: Error) => {
-            if (err) reject(err);
-            else resolve();
-        });
-    });
+    await execPromisified(command);
   } catch (e) {
     console.error(e);
     console.error('dead in trim');
