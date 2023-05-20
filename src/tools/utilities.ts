@@ -1,6 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { SoxCommand } from 'sox-audio';
 
 import ffmpeg from 'fluent-ffmpeg';
 ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
@@ -18,6 +19,11 @@ export async function downloadFile(url: string, localPath: string) {
   });
 
   await fs.promises.writeFile(localPath, Buffer.from(response.data));
+}
+
+export async function downloadAndTrimAudio(url: string, localPath: string) {
+  await downloadFile(url, localPath);
+  await trimAudioFile(localPath);
 }
 
 export function createVideoFromImagesAndAudio(
@@ -127,6 +133,27 @@ export async function generateTranscripts(
   }));
 
   return transcripts;
+}
+
+
+// Create a function to trim the audio
+export async function trimAudioFile(filepath: string, silenceThreshold = 0.1, silenceDuration = 1): Promise<void> {
+    // Create a new SoxCommand instance
+    const command = new SoxCommand();
+
+    command.input(filepath)
+        .inputFileType('wav')
+        .output(filepath)  // Overwrite original file
+        .outputFileType('wav')
+        .addEffect('silence', [1, silenceDuration, silenceThreshold + 'd', '-1', silenceDuration, silenceThreshold + 'd']);
+
+    // Execute the command
+    await new Promise<void>((resolve, reject) => {
+        command.run((err: Error) => {
+            if (err) reject(err);
+            else resolve();
+        });
+    });
 }
 
 export function generateSRT(transcripts: Transcript[], outputPath: string) {
