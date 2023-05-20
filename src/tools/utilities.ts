@@ -140,17 +140,16 @@ export async function generateTranscripts(
 
 
 // Create a function to trim the audio
-export async function trimAudioFile(filepath: string, silenceThreshold = 0.1, silenceDuration = 1): Promise<void> {
-  // Create a sox command to trim silence
-  const command = `sox ${filepath} ${filepath} silence 1 ${silenceDuration} ${silenceThreshold + 'd'} -1 ${silenceDuration} ${silenceThreshold + 'd'}`;
+export async function trimAudioFile(filepath: string, silenceThreshold = -30, silenceDuration = 1): Promise<void> {
+    // Create a sox command to trim silence
+    const command = `sox ${filepath} ${filepath} silence 1 ${silenceDuration} ${silenceThreshold + 'd'} -1 ${silenceDuration} ${silenceThreshold + 'd'}`;
 
-  try {
-    // Execute the command
-    await execPromisified(command);
-  } catch (e) {
-    console.error(e);
-    console.error('dead in trim');
-  }
+    try {
+        // Execute the command
+        await execPromisified(command);
+    } catch (err) {
+        console.error(`Error processing file ${filepath}:`, err);
+    }
 }
 
 export function generateSRT(transcripts: Transcript[], outputPath: string) {
