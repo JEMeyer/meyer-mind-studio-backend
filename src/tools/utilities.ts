@@ -147,17 +147,6 @@ export async function trimAudioFile(filepath: string, silenceThreshold = -30, si
     try {
         // Execute the command
         await execPromisified(command);
-
-        await new Promise((resolve, reject) => {
-          ffmpeg(filepath)
-              .audioCodec('pcm_s16le')
-              .audioChannels(1)
-              .audioFrequency(24000)
-              .output(filepath)
-              .on('end', resolve)
-              .on('error', reject)
-              .run();
-      });
     } catch (err) {
         console.error(`Error processing file ${filepath}:`, err);
     }

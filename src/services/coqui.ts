@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { downloadAndTrimAudio, downloadFile, isEnumKey } from '../tools/utilities';
+import { downloadFile, isEnumKey } from '../tools/utilities';
 import { CoquiAPIError } from '../tools/exceptions';
 import { RequestContext } from '../middleware/context';
 
@@ -80,7 +80,7 @@ export async function CreateXTTSSoundSample(
     const audio_url = response.data.audio_url;
 
     const audioPath = `${folder}/audio-${index}.wav`;
-    await downloadAndTrimAudio(audio_url, audioPath);
+    await downloadFile(audio_url, audioPath);
     let end = performance.now();
     RequestContext.getStore()?.logger.info(`Coqui CreateSoundSample took ${(end - start ) / 1000} seconds`);
     return audioPath;
