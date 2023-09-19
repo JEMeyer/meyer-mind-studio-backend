@@ -10,6 +10,7 @@ import {
 } from './tools/utilities';
 import * as Coqui from './services/coqui';
 import * as Stability from './services/stabilityai';
+import * as LocalDiffusion from './services/localDiffusion';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { RequestContext } from './middleware/context';
@@ -169,7 +170,7 @@ export async function GenerateStoryboard(prompt: string) {
   // Do all images at once
   for (const x in gpt_output.frames) {
     imagePromises.push(
-      Stability.GenerateFrame(
+      LocalDiffusion.GenerateFrame(
         gpt_output.frames[x].visual_description,
         characters,
         gpt_output.theme_visuals,

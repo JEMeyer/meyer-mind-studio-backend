@@ -205,7 +205,7 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
     const scale = req.body.scale ?? 7.5;
     const steps = req.body.steps ?? 50;
     const seed = req.body.seed ?? 3465383516;
-    const localDiffusion = req.body.localDiffusion;
+    const localDiffusion = true;
 
     let response;
 
