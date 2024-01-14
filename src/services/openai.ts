@@ -74,7 +74,8 @@ Negative Prompt: "(flower:1.2), (Facial Marking:1.1), nude, (bad art, low detail
 You will do all of this by using a function called "imageGeneratorFromUpscaler", returning data in JSON format matching the shape {
   prompt: string;
   negPrompt: string;
-}.`;
+}.
+For both prompt and negative prompt remove filler words and focus on a list of descriptive words. For the negative prompt, do not include negations - for example if the picture should have no blurry areas, don't use 'no blurry areas', the negative prompt should include 'blurry' or 'blurry areas'. The fact it's in the negative prompt means it's already negated.`;
 
 interface UpscalerResponse {
   prompt: string;
