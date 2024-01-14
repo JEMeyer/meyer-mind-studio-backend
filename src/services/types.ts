@@ -4,7 +4,6 @@ export type GenerateData = {
   scale: number;
   steps: number;
   seed: number;
-  secondaryServer?: boolean;
 };
 
 export type GenerateResponse = {

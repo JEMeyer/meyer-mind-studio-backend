@@ -213,6 +213,11 @@ app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
 
     const gpt_prompt = await OpenAi.GenerateImagePrompt(prompt);
 
+    if (gpt_prompt.negPrompt === '')
+      RequestContext.getStore()?.logger.error(
+        `Failed promptToImagePrompt with prompt '${req.body.prompt}' but recovered`
+      );
+
     res.json(gpt_prompt);
   } catch (err) {
     if (err instanceof OpenAIAPIError) {
@@ -237,19 +242,17 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
 
   try {
     const prompt = req.body.prompt;
-    const negPrompt = req.body.negPrompt;
+    const negPrompt = req.body.negPrompt ?? '';
     const scale = req.body.scale ?? 7.5;
-    const steps = req.body.steps ?? 50;
+    const steps = req.body.steps ?? 20;
     const seed = req.body.seed ?? 3465383516;
-    const secondaryServer = req.body.xlModel ?? false;
 
-    const response = await LocalDiffusion.Generate({
+    const response = await LocalDiffusion.GenerateXL({
       prompt,
       negPrompt,
       scale,
       steps,
       seed,
-      secondaryServer,
     });
 
     // Convert ArrayBuffer to Buffer

@@ -25,12 +25,14 @@ export async function callGPT(
   };
   const chatCompletion = await openai.chat.completions.create(params);
 
-  const answer = chatCompletion.choices[0].message.content ?? '';
+  const response = chatCompletion.choices[0].message;
   const end = performance.now();
   RequestContext.getStore()?.logger.info(
-    `OpenAI callGPT took ${(end - start) / 1000} seconds`
+    `OpenAI callGPT took ${(end - start) / 1000} seconds
+    Question: ${params}
+    Answer: ${response}`
   );
-  return answer;
+  return response;
 }
 
 export async function callGPT4(
@@ -70,13 +72,13 @@ Example: If a user provides a seed prompt like "A fantasy warrior with a mystica
 Upscaled Prompt: "A high-resolution 4k fantasy warrior, adorned in intricate armor, wielding a mystical sword enveloped in a glowing aura, in a style reminiscent of artists like H.R. Giger and Yoshitaka Amano, with a dark, ethereal background."
 Negative Prompt: "(flower:1.2), (Facial Marking:1.1), nude, (bad art, low detail, pencil drawing:1.4), (plain background, grainy, low quality:1.4), watermark, signature, extra limbs, missing fingers, cropped."
 You will do all of this by using a function called "imageGeneratorFromUpscaler", returning data in JSON format matching the shape {
-  upscaledPrompt: string;
-  negativePrompt: string;
+  prompt: string;
+  negPrompt: string;
 }.`;
 
 interface UpscalerResponse {
-  upscaledPrompt: string;
-  negativePrompt: string;
+  prompt: string;
+  negPrompt: string;
 }
 
 export async function GenerateImagePrompt(prompt: string) {
@@ -92,21 +94,29 @@ export async function GenerateImagePrompt(prompt: string) {
           prompt: {
             type: 'string',
             description:
-              'The seed prompt for generating the upscaled and negative prompts',
+              'A detailed textual description that guides the creation of the image. It should be clear, specific, and descriptive, outlining what you want the generated image to include. This can range from the scene setting, objects, colors, mood, style, and any other relevant details. The more detailed and precise your prompt, the more accurately the generated image will reflect your intended concept.',
+          },
+          negPrompt: {
+            type: 'string',
+            description:
+              'A negative prompt conditions the model to not include things in an image, and it can be used to improve image quality or modify an image. For example, you can improve image quality by including negative prompts like “poor details” or “blurry” to encourage the model to generate a higher quality image. Or you can modify an image by specifying things to exclude from an image.',
           },
         },
-        required: ['prompt'],
+        required: ['prompt', 'negPrompt'],
       },
     },
   ];
-  const response: UpscalerResponse = JSON.parse(
-    await callGPT(`Prompt to upconvert:"""${prompt.trim()}"""`, functions, [
-      { role: 'system', content: upscalerInstructins },
-    ])
+  const response = await callGPT(
+    `Prompt to upconvert:"""${prompt.trim()}"""`,
+    functions,
+    [{ role: 'system', content: upscalerInstructins }]
   );
+  RequestContext.getStore()?.logger.info(JSON.stringify(response));
   const end = performance.now();
   RequestContext.getStore()?.logger.info(
     `OpenAI GenerateImagePrompt took ${(end - start) / 1000} seconds`
   );
-  return response;
+  return JSON.parse(
+    response.function_call?.arguments ?? `{prompt:'${prompt}',negPrompt:''}`
+  ) as UpscalerResponse;
 }

@@ -13,12 +13,10 @@ export const ImageGenBestPractices = `To create a visual description for Stabili
 4. Balance weights: Avoid using extreme weights. Keep them between 0.01 and 1.
 `;
 
-export async function Generate(data: GenerateData) {
+export async function GenerateXL(data: GenerateData) {
   const start = performance.now();
   const response = await axios.post(
-    data.secondaryServer
-      ? `http://${process.env.LOCAL_SECONDARY_AI_SERVER}:8000/generate`
-      : `http://${process.env.LOCAL_AI_SERVER}:8000/generate`,
+    `http://${process.env.LOCAL_AI_SERVER}:8000/generate`,
     {
       prompt: data.prompt,
       negPrompt: data.negPrompt,

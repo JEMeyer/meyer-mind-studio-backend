@@ -162,7 +162,9 @@ async function GenerateStoryboardObject(prompt: string) {
           [],
           [{ role: 'user', content: LocalDiffusion.ImageGenBestPractices }]
         )) || '';
-      let parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
+      let parsedObject = JSON.parse(
+        response.content ?? ''
+      ) as PrimaryStoryboardResponse;
       let errors = validlateMainPrompt(parsedObject);
 
       // Retry once
@@ -174,11 +176,13 @@ async function GenerateStoryboardObject(prompt: string) {
 
           response =
             (await callGPT(
-              response,
+              response.content ?? '',
               [],
               [{ role: 'user', content: correctingPrompt }]
             )) || '';
-          parsedObject = JSON.parse(response) as PrimaryStoryboardResponse;
+          parsedObject = JSON.parse(
+            response.content ?? ''
+          ) as PrimaryStoryboardResponse;
           errors = validlateMainPrompt(parsedObject);
 
           if (errors.length === 0) {
