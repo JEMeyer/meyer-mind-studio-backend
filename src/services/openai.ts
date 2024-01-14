@@ -29,8 +29,8 @@ export async function callGPT(
   const end = performance.now();
   RequestContext.getStore()?.logger.info(
     `OpenAI callGPT took ${(end - start) / 1000} seconds
-    Question: ${params}
-    Answer: ${response}`
+    Question: ${JSON.stringify(params)}
+    Answer: ${JSON.stringify(response)}`
   );
   return response;
 }
@@ -111,12 +111,13 @@ export async function GenerateImagePrompt(prompt: string) {
     functions,
     [{ role: 'system', content: upscalerInstructins }]
   );
-  RequestContext.getStore()?.logger.info(JSON.stringify(response));
   const end = performance.now();
   RequestContext.getStore()?.logger.info(
     `OpenAI GenerateImagePrompt took ${(end - start) / 1000} seconds`
   );
-  return JSON.parse(
+  const results: UpscalerResponse = JSON.parse(
     response.function_call?.arguments ?? `{prompt:'${prompt}',negPrompt:''}`
-  ) as UpscalerResponse;
+  );
+  RequestContext.getStore()?.logger.info(JSON.stringify(results));
+  return results;
 }
