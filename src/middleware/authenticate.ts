@@ -13,7 +13,10 @@ export const authenticate = [
 
     // Let them through if they are hitting the static endpoint, or  videos with no authType
     // We want to flow through the auth for signed-in reqeusts so we can get the userId later.
-    if (req.path.startsWith('/static') || (req.path.startsWith('/videos') && !authType)) {
+    if (
+      req.path.startsWith('/static') ||
+      (req.path.startsWith('/videos') && !authType)
+    ) {
       return next();
     }
 

@@ -78,7 +78,7 @@ app.use((req: CustomRequest, res: Response, next: NextFunction) => {
 });
 
 // Error handling middleware using the logger from the request context
-app.use((err: Error, req: CustomRequest, res: Response) => {
+app.use((err: Error, req: CustomRequest, res: Response, next: NextFunction) => {
   const logger = RequestContext.getStore()?.logger;
   const userId = req.userId || 'unknown';
 
@@ -88,7 +88,13 @@ app.use((err: Error, req: CustomRequest, res: Response) => {
     )}`
   );
 
-  // Handle the error response here or call the next middleware
+  // Check if response headers have already been sent
+  if (res.headersSent) {
+    // If headers are already sent, delegate to the default Express error handler
+    return next(err);
+  }
+
+  // Send an error response
   res.status(500).json({ error: 'Internal Server Error' });
 });
 

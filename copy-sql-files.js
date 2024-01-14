@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const fs = require('fs');
 const path = require('path');
@@ -23,3 +22,5 @@ function copySqlFiles(src, dest) {
     }
   });
 }
+
+copySqlFiles(srcDir, destDir);

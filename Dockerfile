@@ -1,13 +1,11 @@
 # Base image for both builder and runner
-FROM node:bullseye AS base
+FROM node:latest AS base
 
 # Install ffmpeg, sox, and postgresql-client
 RUN apt-get update && \
     apt-get install -y ffmpeg sox postgresql-client && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-RUN npm install -g npm@9.6.4
 
 # Builder stage
 FROM base AS builder
