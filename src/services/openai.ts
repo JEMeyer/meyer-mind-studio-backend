@@ -1,65 +1,112 @@
-import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from 'openai';
+import { OpenAI } from 'openai';
 import { RequestContext } from '../middleware/context';
-import * as Stability from './stabilityai';
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+import {
+  ChatCompletionCreateParams,
+  ChatCompletionMessageParam,
+} from 'openai/resources';
+
+const openai = new OpenAI();
 
 export async function callGPT(
   prompt: string,
-  history?: ChatCompletionRequestMessage[]
+  functions: ChatCompletionCreateParams.Function[],
+  history?: ChatCompletionMessageParam[]
 ) {
   const start = performance.now();
-  let payload: ChatCompletionRequestMessage[] = [];
+  let payload: ChatCompletionMessageParam[] = [];
   payload = payload.concat(history || []);
   payload.push({ role: 'user', content: prompt });
 
-  const res = await openai.createChatCompletion({
+  const params: ChatCompletionCreateParams = {
     model: 'gpt-3.5-turbo',
     messages: payload,
-    // top_p: .8,
-    //presence_penalty: .5,
-    //frequency_penalty: .5,
-    // max_tokens: 1500
-  });
+    functions: functions,
+    // ... other parameters
+  };
+  const chatCompletion = await openai.chat.completions.create(params);
 
-  const answer = res?.data?.choices[0]?.message?.content;
-  let end = performance.now();
-  RequestContext.getStore()?.logger.info(`OpenAI callGPT took ${(end - start ) / 1000} seconds`);
+  const answer = chatCompletion.choices[0].message.content ?? '';
+  const end = performance.now();
+  RequestContext.getStore()?.logger.info(
+    `OpenAI callGPT took ${(end - start) / 1000} seconds`
+  );
   return answer;
 }
 
 export async function callGPT4(
   prompt: string,
-  history?: ChatCompletionRequestMessage[]
+  history?: ChatCompletionMessageParam[]
 ) {
   const start = performance.now();
-  let payload: ChatCompletionRequestMessage[] = [];
+  let payload: ChatCompletionMessageParam[] = [];
   payload = payload.concat(history || []);
   payload.push({ role: 'user', content: prompt });
 
-  const res = await openai.createChatCompletion({
+  const params = {
     model: 'gpt-4',
     messages: payload,
-    // top_p: .8,
-    //presence_penalty: .5,
-    //frequency_penalty: .5,
-    // max_tokens: 1500
-  });
+    // ... other parameters
+  };
+  const chatCompletion = await openai.chat.completions.create(params);
 
-  const answer = res?.data?.choices[0]?.message?.content;
-  let end = performance.now();
-  RequestContext.getStore()?.logger.info(`OpenAI callGPT4 took ${(end - start ) / 1000} seconds`);
+  const answer = chatCompletion.choices[0].message.content;
+  const end = performance.now();
+  RequestContext.getStore()?.logger.info(
+    `OpenAI callGPT4 took ${(end - start) / 1000} seconds`
+  );
   return answer;
 }
 
-const image_prompt_upscaler_prompt =
-  'You are a prompt generator for Stability AI. Using the best practices described, I want you to take a prompt for an image as input, and output a better prompt that uses the best practices. If there are specific elements in the input prompt, keep them in the output. If the input is very vague and you think a prompt will be better with some details, create some details on your own. Limit your response to a maximum of 70 words. If you feel anything is inappropriate in the prompt, rephrase it so it adheres to your content policy. Use the best practices from the message previously sent. Make sure the description is concise, specific, uses correct terminology, and has balanced weights balanced weights. An example of a sentence using the weight is: "Homer Simpson, bald, overweight, white shirt, blue pants entering Simpsons house: 0.6 Simpsons gathered to welcome : 0.5". Return only the new prompt. Here is the seed prompt:';
+const upscalerInstructins = `You are a prompt upscaler. Given a seed prompt from a user, to generate an 'upscaled' prompt and a negative prompt:
+Upscaled Prompt Generation:
+Enhance Specificity: Add specific details related to the desired outcome, such as artists, styles, emotions, or physical characteristics.
+Quality Mention: Ensure to mention the desired quality and resolution.
+Incorporate Known References: If possible, incorporate references to known artists, artworks, or styles that align with the desired outcome.
+Negative Prompt Generation:
+Identify Common Undesired Elements: Identify elements that are commonly undesired or misinterpreted in generated images and mention them in the negative prompt.
+Quality Mention: Mention any undesired qualities or characteristics that should be avoided in the generated image.
+Specific Avoidances: Mention any specific features, styles, or elements that should be avoided in the generated image.
+Example: If a user provides a seed prompt like "A fantasy warrior with a mystical sword", the LLM might generate:
+Upscaled Prompt: "A high-resolution 4k fantasy warrior, adorned in intricate armor, wielding a mystical sword enveloped in a glowing aura, in a style reminiscent of artists like H.R. Giger and Yoshitaka Amano, with a dark, ethereal background."
+Negative Prompt: "(flower:1.2), (Facial Marking:1.1), nude, (bad art, low detail, pencil drawing:1.4), (plain background, grainy, low quality:1.4), watermark, signature, extra limbs, missing fingers, cropped."
+You will do all of this by using a function called "imageGeneratorFromUpscaler", returning data in JSON format matching the shape {
+  upscaledPrompt: string;
+  negativePrompt: string;
+}.`;
+
+interface UpscalerResponse {
+  upscaledPrompt: string;
+  negativePrompt: string;
+}
+
 export async function GenerateImagePrompt(prompt: string) {
   const start = performance.now();
-  const response = await callGPT(`${image_prompt_upscaler_prompt}"""${prompt.trim()}"""`, [{role: 'user', content: Stability.StabilityBestPractices}]);
-  let end = performance.now();
-  RequestContext.getStore()?.logger.info(`OpenAI GenerateImagePrompt took ${(end - start ) / 1000} seconds`);
+  const functions: ChatCompletionCreateParams.Function[] = [
+    {
+      name: 'imageGeneratorPromptUpscaler',
+      description:
+        'Takes in a single prompt and generates an "upscaled" prompt and a negative prompt for image generation using a diffusion model.',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: {
+            type: 'string',
+            description:
+              'The seed prompt for generating the upscaled and negative prompts',
+          },
+        },
+        required: ['prompt'],
+      },
+    },
+  ];
+  const response: UpscalerResponse = JSON.parse(
+    await callGPT(`Prompt to upconvert:"""${prompt.trim()}"""`, functions, [
+      { role: 'system', content: upscalerInstructins },
+    ])
+  );
+  const end = performance.now();
+  RequestContext.getStore()?.logger.info(
+    `OpenAI GenerateImagePrompt took ${(end - start) / 1000} seconds`
+  );
   return response;
 }

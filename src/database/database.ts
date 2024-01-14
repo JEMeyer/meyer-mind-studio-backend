@@ -21,7 +21,7 @@ const initOpts: IInitOptions = {
 const pgp: IMain = pgPromise(initOpts);
 
 // Create the database instance with the provided connection details
-const db: IDatabase<{}> = pgp(connection);
+const db: IDatabase<object> = pgp(connection);
 
 export default db;
 

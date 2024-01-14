@@ -49,4 +49,4 @@ RUN npm install -g pm2
 EXPOSE 8080
 
 # Start the application
-CMD ["pm2-runtime", "dist/server.js" , "-i", "1"]
+CMD ["pm2-runtime", "dist/server.js" , "-i", "4"]

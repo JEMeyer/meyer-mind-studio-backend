@@ -1,8 +1,8 @@
-export class StabilityAPIError extends Error {
+export class ImageGenAPIError extends Error {
   constructor(msg = '') {
     super(msg);
-    Object.setPrototypeOf(this, StabilityAPIError.prototype);
-    this.name = 'StabilityAPIError';
+    Object.setPrototypeOf(this, ImageGenAPIError.prototype);
+    this.name = 'ImageGenAPIError';
   }
 }
 export class CoquiAPIError extends Error {

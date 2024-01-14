@@ -5,12 +5,11 @@ import express, { NextFunction, Response } from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import multer from 'multer';
-import  { createLoggerWithUserId } from './middleware/logger';
+import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
 import { deleteFolder } from './tools/utilities';
 import * as OpenAi from './services/openai';
-import * as Stability from './services/stabilityai';
 import * as LocalDiffusion from './services/localDiffusion';
 import * as Storyboard from './storyboard';
 
@@ -19,7 +18,7 @@ import {
   CoquiAPIError,
   FfmpegError,
   OpenAIAPIError,
-  StabilityAPIError,
+  ImageGenAPIError,
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
 import { RequestContext } from './middleware/context';
@@ -27,7 +26,11 @@ import { timerMiddleware } from './middleware/timer';
 import path from 'path';
 import { migrate } from './database/database';
 import { voteOnVideo } from './services/voteService';
-import { addVideo, getVideoById, getVideosWithUpvotes } from './services/videoService';
+import {
+  addVideo,
+  getVideoById,
+  getVideosWithUpvotes,
+} from './services/videoService';
 import { CustomRequest } from './types/types';
 
 // Initialize express
@@ -37,7 +40,7 @@ const PORT = 8080;
 const upload = multer({ storage: multer.memoryStorage() });
 
 // static can just  be served
-app.use('/static',express.static('/usr/app/src/public'));
+app.use('/static', express.static('/usr/app/src/public'));
 
 // Enable CORS for all routes
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
@@ -46,7 +49,8 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = 'The CORS policy for this site does not allow access from the specified origin.';
+        const msg =
+          'The CORS policy for this site does not allow access from the specified origin.';
         return callback(new Error(msg), false);
       }
       return callback(null, true);
@@ -62,22 +66,27 @@ app.use(authenticate);
 app.use((req: CustomRequest, res: Response, next: NextFunction) => {
   const userId = req.userId || 'unknown';
   const logger = createLoggerWithUserId(userId);
-  
+
   RequestContext.run({ logger }, () => {
     morgan('combined', {
       stream: {
-        write: (message: string) => RequestContext.getStore()?.logger?.info(message.trim()),
+        write: (message: string) =>
+          RequestContext.getStore()?.logger?.info(message.trim()),
       },
     })(req, res, next);
   });
 });
 
 // Error handling middleware using the logger from the request context
-app.use((err: Error, req: CustomRequest, res: Response, next: NextFunction) => {
+app.use((err: Error, req: CustomRequest, res: Response) => {
   const logger = RequestContext.getStore()?.logger;
   const userId = req.userId || 'unknown';
-  
-  logger?.error(`User ID: ${userId}, Error: ${err.message}, Request Body: ${JSON.stringify(req.body)}`);
+
+  logger?.error(
+    `User ID: ${userId}, Error: ${err.message}, Request Body: ${JSON.stringify(
+      req.body
+    )}`
+  );
 
   // Handle the error response here or call the next middleware
   res.status(500).json({ error: 'Internal Server Error' });
@@ -91,7 +100,6 @@ app.use(timerMiddleware);
 
 // parse URL encoded data
 app.use(express.urlencoded({ extended: true }));
-
 
 // Initialize the database and start the server
 const startServer = async () => {
@@ -108,65 +116,84 @@ const startServer = async () => {
 
 startServer();
 
-app.post('/promptToStoryboard', upload.none(),  async (req: CustomRequest, res: Response) => {
-  // Check if request body is empty
-  if (!Object.keys(req.body).length) {
-    return res.status(400).json({
-      message: 'Request body cannot be empty',
-    });
-  }
-
-  try {
-    const prompt = req.body.prompt;
-
-    const  { outputVideo, gpt_output } = await Storyboard.GenerateStoryboard(prompt);
-    // Extract the file name and parent directory using path.basename() and path.dirname()
-    const uuid = path.basename(path.dirname(outputVideo));
-    const fileName = path.basename(outputVideo);
-    const tempDir = path.dirname(outputVideo);
-
-    // TODO: update joebot to use  static routes too
-    if (req.header('Authorization')?.split(' ')[0] === 'Basic') {
-      const fileStream = fs.createReadStream(outputVideo);
-
-      res.setHeader('Content-Type', 'video/mp4');
-      res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
-
-      fileStream.pipe(res);
-    } else {
-      // Move the video to publicly shared folder
-      await fs.promises.copyFile(outputVideo, `/usr/app/src/public/${uuid}-${fileName}`);
-
-      const publicPath = `/static/${uuid}-${fileName}`;
-
-      // Add to database
-      const video = await addVideo(publicPath, prompt, gpt_output,  gpt_output.name, req.userId || 'unknown')
-
-      // Return the filename (to then use with /static route)
-      res.json(video);
+app.post(
+  '/promptToStoryboard',
+  upload.none(),
+  async (req: CustomRequest, res: Response) => {
+    // Check if request body is empty
+    if (!Object.keys(req.body).length) {
+      return res.status(400).json({
+        message: 'Request body cannot be empty',
+      });
     }
-    res.on('finish', () => {
-      deleteFolder(tempDir);
-    });
-  } catch (err) {
-    if (err instanceof StabilityAPIError) {
-      res.status(500).statusMessage =
-        'Failed during image creation (invalid prompt detected).';
-    } else if (err instanceof OpenAIAPIError) {
-      res.status(500).statusMessage = 'Failed during GPT calls.';
-    } else if (err instanceof CoquiAPIError) {
-      res.status(500).statusMessage = 'Failed during voice creation.';
-    } else if (err instanceof FfmpegError) {
-      res.status(500).statusMessage = 'Failed during video creation.';
-    } else {
-      res.status(500).statusMessage = 'Failed with unknown error.';
-    }
-    RequestContext.getStore()?.logger.error(`Error caught in /promptToStoryboard with prompt '${req.body.prompt}': ${err}`);
-    res.send();
-  }
-});
 
-app.post('/promptToImagePrompt',  async (req: CustomRequest, res: Response) => {
+    try {
+      const prompt = req.body.prompt;
+
+      const { outputVideo, gpt_output } =
+        await Storyboard.GenerateStoryboard(prompt);
+      // Extract the file name and parent directory using path.basename() and path.dirname()
+      const uuid = path.basename(path.dirname(outputVideo));
+      const fileName = path.basename(outputVideo);
+      const tempDir = path.dirname(outputVideo);
+
+      // TODO: update joebot to use  static routes too
+      if (req.header('Authorization')?.split(' ')[0] === 'Basic') {
+        const fileStream = fs.createReadStream(outputVideo);
+
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=${fileName}`
+        );
+
+        fileStream.pipe(res);
+      } else {
+        // Move the video to publicly shared folder
+        await fs.promises.copyFile(
+          outputVideo,
+          `/usr/app/src/public/${uuid}-${fileName}`
+        );
+
+        const publicPath = `/static/${uuid}-${fileName}`;
+
+        // Add to database
+        const video = await addVideo(
+          publicPath,
+          prompt,
+          gpt_output,
+          gpt_output.name,
+          req.userId || 'unknown'
+        );
+
+        // Return the filename (to then use with /static route)
+        res.json(video);
+      }
+      res.on('finish', () => {
+        deleteFolder(tempDir);
+      });
+    } catch (err) {
+      if (err instanceof ImageGenAPIError) {
+        res.status(500).statusMessage =
+          'Failed during image creation (invalid prompt detected).';
+      } else if (err instanceof OpenAIAPIError) {
+        res.status(500).statusMessage = 'Failed during GPT calls.';
+      } else if (err instanceof CoquiAPIError) {
+        res.status(500).statusMessage = 'Failed during voice creation.';
+      } else if (err instanceof FfmpegError) {
+        res.status(500).statusMessage = 'Failed during video creation.';
+      } else {
+        res.status(500).statusMessage = 'Failed with unknown error.';
+      }
+      RequestContext.getStore()?.logger.error(
+        `Error caught in /promptToStoryboard with prompt '${req.body.prompt}': ${err}`
+      );
+      res.send();
+    }
+  }
+);
+
+app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
   // Check if request body is empty
   if (!Object.keys(req.body).length) {
     return res.status(400).json({
@@ -187,8 +214,10 @@ app.post('/promptToImagePrompt',  async (req: CustomRequest, res: Response) => {
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
     }
-    RequestContext.getStore()?.logger.error(`Failed promptToImagePrompt with prompt '${req.body.prompt}': ${err}`)
-    res.send()
+    RequestContext.getStore()?.logger.error(
+      `Failed promptToImagePrompt with prompt '${req.body.prompt}': ${err}`
+    );
+    res.send();
   }
 });
 
@@ -202,18 +231,20 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
 
   try {
     const prompt = req.body.prompt;
+    const negPrompt = req.body.negPrompt;
     const scale = req.body.scale ?? 7.5;
     const steps = req.body.steps ?? 50;
     const seed = req.body.seed ?? 3465383516;
-    const localDiffusion = true;
+    const secondaryServer = req.body.xlModel ?? false;
 
-    let response;
-
-    if (localDiffusion) {
-      response = await LocalDiffusion.Generate({ prompt, scale, steps, seed });
-    } else {
-      response = await Stability.Generate({ prompt, scale, steps, seed });
-    }
+    const response = await LocalDiffusion.Generate({
+      prompt,
+      negPrompt,
+      scale,
+      steps,
+      seed,
+      secondaryServer,
+    });
 
     // Convert ArrayBuffer to Buffer
     const buffer = Buffer.from(response.data);
@@ -232,13 +263,15 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
     // Pipe the stream to the response
     stream.pipe(res);
   } catch (err) {
-    if (err instanceof StabilityAPIError) {
+    if (err instanceof ImageGenAPIError) {
       res.status(500).statusMessage =
         'Failed during image creation (invalid prompt detected).';
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
     }
-    RequestContext.getStore()?.logger.error(`Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`);
+    RequestContext.getStore()?.logger.error(
+      `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
+    );
     res.send();
   }
 });
@@ -264,13 +297,22 @@ app.put('/vote', async (req: CustomRequest, res: Response) => {
 
 app.get('/videos', async (req: CustomRequest, res) => {
   try {
-    const sorting = typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
-    const timeframe = typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
+    const sorting =
+      typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
+    const timeframe =
+      typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
     const filterByUser = req.query.userContentOnly === 'true';
     const likedVideosOnly = req.query.likedVideos === 'true';
-    const page =  Number(req.query.page) || 1;
+    const page = Number(req.query.page) || 1;
 
-    const videos = await getVideosWithUpvotes(page, sorting, req.userId, timeframe, filterByUser, likedVideosOnly);
+    const videos = await getVideosWithUpvotes(
+      page,
+      sorting,
+      req.userId,
+      timeframe,
+      filterByUser,
+      likedVideosOnly
+    );
 
     res.json(videos);
   } catch (error) {

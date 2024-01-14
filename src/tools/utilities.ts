@@ -138,18 +138,23 @@ export async function generateTranscripts(
   return transcripts;
 }
 
-
 // Create a function to trim the audio
-export async function trimAudioFile(filepath: string, silenceThreshold = -30, silenceDuration = 1): Promise<void> {
-    // Create a sox command to trim silence
-    const command = `sox ${filepath} ${filepath} silence 1 ${silenceDuration} ${silenceThreshold + 'd'} -1 ${silenceDuration} ${silenceThreshold + 'd'}`;
+export async function trimAudioFile(
+  filepath: string,
+  silenceThreshold = -30,
+  silenceDuration = 1
+): Promise<void> {
+  // Create a sox command to trim silence
+  const command = `sox ${filepath} ${filepath} silence 1 ${silenceDuration} ${
+    silenceThreshold + 'd'
+  } -1 ${silenceDuration} ${silenceThreshold + 'd'}`;
 
-    try {
-        // Execute the command
-        await execPromisified(command);
-    } catch (err) {
-        console.error(`Error processing file ${filepath}:`, err);
-    }
+  try {
+    // Execute the command
+    await execPromisified(command);
+  } catch (err) {
+    console.error(`Error processing file ${filepath}:`, err);
+  }
 }
 
 export function generateSRT(transcripts: Transcript[], outputPath: string) {
@@ -185,8 +190,8 @@ export function formatTimestamp(timeInSeconds: number) {
   return `${hours.toString().padStart(2, '0')}:${minutes
     .toString()
     .padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds
-      .toString()
-      .padStart(3, '0')}`;
+    .toString()
+    .padStart(3, '0')}`;
 }
 
 export function isEnumKey<K extends string | number | symbol>(

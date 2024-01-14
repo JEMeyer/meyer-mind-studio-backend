@@ -1,8 +1,10 @@
 export type GenerateData = {
   prompt: string;
+  negPrompt: string;
   scale: number;
   steps: number;
   seed: number;
+  secondaryServer?: boolean;
 };
 
 export type GenerateResponse = {
