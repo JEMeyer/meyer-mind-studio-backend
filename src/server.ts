@@ -268,7 +268,7 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
     // Save it to /static
     try {
       await fs.promises.writeFile(filePath, buffer);
-      RequestContext.getStore()?.logger.error(`File saved: ${filePath}`);
+      RequestContext.getStore()?.logger.info(`File saved: ${filePath}`);
     } catch (err) {
       RequestContext.getStore()?.logger.error(
         `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
