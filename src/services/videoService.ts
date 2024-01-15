@@ -59,6 +59,8 @@ export const getVideosWithUpvotes = async (
       ? `AND uv.user_id = '${userId}' AND uv.value = 1`
       : '';
 
+  const offset = (pageNumber - 1) * 10;
+
   const query = `
         WITH vote_summary AS (
             SELECT video_id, SUM(value) as total_votes
@@ -68,14 +70,14 @@ export const getVideosWithUpvotes = async (
         SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, vs.total_votes, uv.value as user_vote
         FROM videos v
         LEFT JOIN vote_summary vs ON v.id = vs.video_id
-        LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = $1
+        LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = ${userId}
         WHERE 1=1 ${timeFrameCondition} ${userFilterCondition} ${likedVideosOnlyCondition}
         ORDER BY ${orderByVoteTime}
-        LIMIT 10 OFFSET (($2 - 1) * 10);
+        LIMIT 10 OFFSET ${offset};
     `;
 
   try {
-    return await selectQuery(query, [userId, pageNumber || 1]);
+    return await selectQuery(query, []);
   } catch (error) {
     throw new Error(`An error occurred while fetching videos: ${error}`);
   }
@@ -91,13 +93,12 @@ export const getVideoById = async (videoId: string, userId?: string) => {
       SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, vs.total_votes, uv.value as user_vote
       FROM videos v
       LEFT JOIN vote_summary vs ON v.id = vs.video_id
-      LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = $1
-      WHERE v.id = $2;
+      LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = ${userId}
+      WHERE v.id = ${videoId};
     `;
-  const params = [userId, videoId];
 
   try {
-    const result = await selectQuery(sql, params);
+    const result = await selectQuery(sql, []);
     return result[0] || null;
   } catch (error) {
     throw new Error(`An error occurred while getting the video: ${error}`);
