@@ -39,23 +39,26 @@ const enUS_Voices = [
   { Name: 'en-US-AndrewMultilingualNeural', Gender: 'Male' },
   { Name: 'en-US-AvaMultilingualNeural', Gender: 'Female' },
   { Name: 'en-US-AvaNeural', Gender: 'Female' },
-  { Name: 'en-US-BlueNeural', Gender: 'Neutral' },
   { Name: 'en-US-BrianMultilingualNeural', Gender: 'Male' },
   { Name: 'en-US-EmmaMultilingualNeural', Gender: 'Female' },
 ];
 
-const maleVoices = enUS_Voices.filter((voice) => voice.Gender === 'Male');
-const femaleVoices = enUS_Voices.filter((voice) => voice.Gender === 'Female');
+const genderlessVoice = { Name: 'en-US-BlueNeural', Gender: 'Neutral' };
+
+const maleVoices = enUS_Voices
+  .filter((voice) => voice.Gender === 'Male')
+  .concat(genderlessVoice);
+const femaleVoices = enUS_Voices
+  .filter((voice) => voice.Gender === 'Female')
+  .concat(genderlessVoice);
 
 export function getRandomVoice(gender: string, voicesUsed: Set<string>) {
-  const voices = gender === 'Male' ? maleVoices : femaleVoices;
-  for (let i = 0; i < 10; i++) {
-    const randIndex = Math.floor(Math.random() * voices.length);
-    if (!voicesUsed.has(voices[randIndex].Name)) {
-      return voices[randIndex].Name;
-    }
-  }
-  return '';
+  const voices =
+    gender === 'Male'
+      ? maleVoices.filter(({ Name }) => voicesUsed.has(Name))
+      : femaleVoices.filter(({ Name }) => voicesUsed.has(Name));
+  const randIndex = Math.floor(Math.random() * voices.length);
+  return voices[randIndex].Name;
 }
 
 export async function generateAudio(
