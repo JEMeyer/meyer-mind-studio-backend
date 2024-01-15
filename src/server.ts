@@ -130,6 +130,11 @@ app.post(
       });
     }
 
+    if (req.header('Authorization')?.split(' ')[0] !== 'Basic') {
+      return (res.status(500).statusMessage =
+        'Storyboard disabled temporarily.');
+    }
+
     try {
       const prompt = req.body.prompt;
 
