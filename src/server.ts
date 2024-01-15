@@ -8,7 +8,7 @@ import multer from 'multer';
 import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
-import { deleteFolder } from './tools/utilities';
+import { deleteFolder, todaysDateAsString } from './tools/utilities';
 import * as OpenAi from './services/openai';
 import * as LocalDiffusion from './services/localDiffusion';
 import * as Storyboard from './storyboard';
@@ -31,6 +31,7 @@ import {
   getVideosWithUpvotes,
 } from './services/videoService';
 import { CustomRequest } from './types/types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Initialize express
 const app = express();
@@ -259,6 +260,20 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
 
     // Convert ArrayBuffer to Buffer
     const buffer = Buffer.from(response.data);
+    const filePath = `/usr/app/src/public/images/${todaysDateAsString()}_${uuidv4().substring(
+      0,
+      6
+    )}.png`;
+
+    // Save it to /static
+    try {
+      await fs.promises.writeFile(filePath, buffer);
+      RequestContext.getStore()?.logger.error(`File saved: ${filePath}`);
+    } catch (err) {
+      RequestContext.getStore()?.logger.error(
+        `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
+      );
+    }
 
     // Convert Buffer to Stream
     const stream = Readable.from(buffer);

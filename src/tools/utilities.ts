@@ -180,7 +180,7 @@ export function generateSRT(transcripts: Transcript[], outputPath: string) {
   fs.writeFileSync(outputPath, srtContent);
 }
 
-export function formatTimestamp(timeInSeconds: number) {
+function formatTimestamp(timeInSeconds: number) {
   const totalSeconds = Math.floor(timeInSeconds);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -212,4 +212,13 @@ export function safeStringify(obj: any) {
     }
     return value;
   });
+}
+
+export function todaysDateAsString() {
+  const date = new Date();
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0!
+  const dd = String(date.getDate()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}-${seconds}`;
 }
