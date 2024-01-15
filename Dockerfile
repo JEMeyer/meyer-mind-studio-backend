@@ -1,9 +1,9 @@
 # Base image for both builder and runner
 FROM node:latest AS base
 
-# Install ffmpeg, sox, and postgresql-client
+# Install ffmpeg, sox
 RUN apt-get update && \
-    apt-get install -y ffmpeg sox postgresql-client && \
+    apt-get install -y ffmpeg sox && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

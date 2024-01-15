@@ -1,9 +1,8 @@
-import { CoquiEmotion } from '../services/coqui';
 import { Request } from 'express';
 
 export type Character = {
   id: number;
-  voiceId: string;
+  voiceName: string;
   description: string;
 };
 
@@ -15,12 +14,11 @@ export type Transcript = {
 type StoryboardSpeaker = {
   id: number;
   visual_description: string;
-  voice_description: string;
+  gender: string;
 };
 type StoryboardFrame = {
   speakerId: number;
   dialog: string;
-  emotion: CoquiEmotion;
   visual_description: string;
 };
 export type PrimaryStoryboardResponse = {

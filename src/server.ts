@@ -24,7 +24,6 @@ import { authenticate } from './middleware/authenticate';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
 import path from 'path';
-import { migrate } from './database/database';
 import { voteOnVideo } from './services/voteService';
 import {
   addVideo,
@@ -107,11 +106,9 @@ app.use(timerMiddleware);
 // parse URL encoded data
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize the database and start the server
+// Start the server
 const startServer = async () => {
   try {
-    await migrate(); // Run the database migrations
-
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
@@ -287,14 +284,14 @@ app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
 
 app.put('/vote', async (req: CustomRequest, res: Response) => {
   try {
-    const userId = req.userId; // assuming the userId is stored in a 'user' property on the request object
+    const userId = req.userId;
     if (!userId) {
       return res.status(400).json({
         message: 'Unable to determine userId.',
       });
     }
     const videoId = req.body.videoId;
-    const value = parseInt(req.body.value, 10); // assuming the 'value' parameter is passed in the request body as a string
+    const value = parseInt(req.body.value, 10);
 
     await voteOnVideo(userId, videoId, value);
     res.sendStatus(204); // return a 'no content' response to indicate success

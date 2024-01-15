@@ -1,50 +1,45 @@
-import path from 'path';
-import { IDatabase, IMain, IInitOptions } from 'pg-promise';
-import pgPromise from 'pg-promise';
-import fs from 'fs';
+import mysql from 'mysql2/promise';
+import { env } from 'process';
+import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 
-const env = process.env;
-
-// Database connection details
-const connection = {
-  host: env.POSTGRES_HOST || 'db',
-  port: parseInt(env.POSTGRES_PORT || '5432'),
-  database: env.POSTGRES_DB,
-  user: env.POSTGRES_USER,
-  password: env.POSTGRES_PASSWORD,
+// Database connection pool configuration
+const poolConfig = {
+  host: env.MYSQL_HOST,
+  user: env.MYSQL_USER,
+  password: env.MYSQL_PASSWORD,
+  database: env.MYSQL_DB,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 };
 
-const initOpts: IInitOptions = {
-  capSQL: true, // Generate capitalized SQL
-};
+// Create a pool of connections
+const pool = mysql.createPool(poolConfig);
 
-const pgp: IMain = pgPromise(initOpts);
-
-// Create the database instance with the provided connection details
-const db: IDatabase<object> = pgp(connection);
-
-export default db;
-
-export async function migrate() {
+async function selectQuery(
+  sql: string,
+  params: any[]
+): Promise<RowDataPacket[]> {
+  const connection = await pool.getConnection();
   try {
-    // Read the migrations folder
-    const migrationsFolder = path.join(__dirname, 'migrations');
-    const migrationFiles = fs.readdirSync(migrationsFolder);
-
-    // Sort migration files by name to ensure they are executed in the correct order
-    migrationFiles.sort();
-
-    // Execute each migration file
-    for (const migrationFile of migrationFiles) {
-      if (path.extname(migrationFile) === '.sql') {
-        console.log(`Running migration: ${migrationFile}`);
-        const migrationPath = path.join(migrationsFolder, migrationFile);
-        const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-        await db.none(migrationSql);
-      }
-    }
-    console.log('All migrations completed successfully.');
-  } catch (error) {
-    console.error('Error running migrations:', error);
+    const [rows] = await connection.query<RowDataPacket[]>(sql, params);
+    return rows;
+  } finally {
+    connection.release();
   }
 }
+
+async function modificationQuery(
+  sql: string,
+  params: any[]
+): Promise<ResultSetHeader | any> {
+  const connection = await pool.getConnection();
+  try {
+    const [result] = await connection.query<ResultSetHeader | any>(sql, params);
+    return result;
+  } finally {
+    connection.release();
+  }
+}
+
+export { selectQuery, modificationQuery };

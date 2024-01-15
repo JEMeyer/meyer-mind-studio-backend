@@ -12,6 +12,7 @@ import * as LocalDiffusion from './services/localDiffusion';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { RequestContext } from './middleware/context';
+import { generateAudio, getRandomVoice } from './services/msCognitive';
 
 const sampleObject = `{
   "name": "Harry Meets the Simpsons",
@@ -91,15 +92,17 @@ export async function GenerateStoryboard(prompt: string) {
   await fs.promises.mkdir(uniqueFolder, { recursive: true });
 
   const characters: Character[] = [];
+  const voicesUsed: Set<string> = new Set();
   for (const x in gpt_output.speakers) {
     const desc = gpt_output.speakers[x].visual_description;
-    const voice_id = 'broken';
-    // const voice_id = await Coqui.XTTSVoiceFromPrompt(
-    //   gpt_output.speakers[x].voice_description
-    // );
+    const randomVoice = getRandomVoice(
+      gpt_output.speakers[x].gender,
+      voicesUsed
+    );
+    voicesUsed.add(randomVoice);
     characters.push({
       id: gpt_output.speakers[x].id,
-      voiceId: voice_id,
+      voiceName: randomVoice,
       description: desc,
     });
   }
@@ -118,14 +121,14 @@ export async function GenerateStoryboard(prompt: string) {
         uniqueFolder
       )
     );
-    // audioPromises.push(
-    //   Coqui.CreateXTTSSoundSample(
-    //     characters[gpt_output.frames[x].speakerId - 1].voiceId,
-    //     gpt_output.frames[x]['dialog'],
-    //     uniqueFolder,
-    //     x
-    //   )
-    // );
+    audioPromises.push(
+      generateAudio(
+        gpt_output.frames[x]['dialog'],
+        characters[gpt_output.frames[x].speakerId - 1].voiceName,
+        uniqueFolder,
+        x
+      )
+    );
   }
 
   const audioPaths = await Promise.all(audioPromises);
