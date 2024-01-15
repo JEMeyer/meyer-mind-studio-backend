@@ -7,6 +7,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install PM2
+RUN npm install -g pm2
+
 # Builder stage
 FROM base AS builder
 
@@ -39,9 +42,6 @@ RUN mkdir -p /usr/src/app/public
 
 # Install the application dependencies
 RUN npm ci --production
-
-# Install PM2
-RUN npm install -g pm2
 
 # Expose the port your application listens on
 EXPOSE 8080
