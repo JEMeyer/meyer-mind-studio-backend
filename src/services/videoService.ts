@@ -23,11 +23,12 @@ export const addVideo = async (
 export const getVideoById = async (videoId: string, userId?: string) => {
   const sql = `
       WITH vote_summary AS (
-          SELECT video_id, SUM(value) as total_votes
+          SELECT id_value, SUM(value) as total_votes
           FROM votes
-          GROUP BY video_id
+          WHERE id_type = 1
+          GROUP BY id_value
       )
-      SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, vs.total_votes, uv.value as user_vote
+      SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, v.type, vs.total_votes, uv.value as user_vote
       FROM videos v
       LEFT JOIN vote_summary vs ON v.id = vs.video_id
       LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = ${userId}
