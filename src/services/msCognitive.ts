@@ -77,10 +77,7 @@ export async function generateAudio(
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
   synthesizer?.speakTextAsync(
     text,
-    (result) => {
-      if (result) {
-        RequestContext.getStore()?.logger.info(`Audio written to ${audioPath}`);
-      }
+    () => {
       synthesizer?.close();
       const end = performance.now();
       RequestContext.getStore()?.logger.info(
