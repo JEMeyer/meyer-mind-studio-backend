@@ -13,6 +13,9 @@ export const addVideo = async (
     'INSERT INTO videos (public_path, prompt, data, name, created_by) VALUES (?, ?, ?, ?, ?);';
   const params = [publicPath, prompt, data, name, userId];
 
+  RequestContext.getStore()?.logger.info(
+    `SQL: "${sql}" with PARAM: "${params}"`
+  );
   try {
     const result = await modificationQuery(sql, params);
     return result;

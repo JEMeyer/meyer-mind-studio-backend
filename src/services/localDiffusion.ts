@@ -6,12 +6,24 @@ import fs from 'fs/promises';
 import { Character } from '../types/types';
 import path from 'path';
 
-export const ImageGenBestPractices = `To create a visual description for Stability AI, follow these best practices:
-1. Be specific and concise: Use specific terms and keep the description under 20 words.
-2. Use correct terminology: Use appropriate terms for objects, colors, and actions.
-3. Weighted terms: Include weights for important terms to influence the AI's focus. Example: "fujifilm: 1 | centered: .1".
-4. Balance weights: Avoid using extreme weights. Keep them between 0.01 and 1.
-`;
+export const ImageGenBestPractices = `To create a visual description for Stability AI effectively, follow these best practices:
+1. Be specific and concise: Use specific terms and keep the description under 20 words. Enhance specificity by adding details related to the desired outcome, such as artists, styles, emotions, or physical characteristics.
+2. Use correct terminology: Employ appropriate terms for objects, colors, actions, and artistic styles. Incorporate references to known artists, artworks, or styles that align with the desired outcome.
+3. Quality Mention: Ensure to mention the desired quality, resolution, and any important characteristics of the image.
+5. Negative Prompt Generation: Identify and mention elements that are commonly undesired or misinterpreted in generated images. For the negative prompt, remove filler words and focus on a list of descriptive words. Do not include negations; instead, mention the undesired elements directly. Example: "blurry, grainy, watermark".
+6. Specific Avoidances: Mention any specific features, styles, or elements that should be avoided in the generated image. This includes undesired qualities or characteristics (only for negative prompts).
+Prompt Generation:
+Enhance Specificity: Add specific details related to the desired outcome, such as artists, styles, emotions, or physical characteristics.
+Quality Mention: Ensure to mention the desired quality and resolution.
+Incorporate Known References: If possible, incorporate references to known artists, artworks, or styles that align with the desired outcome.
+Negative Prompt Generation:
+Identify Common Undesired Elements: Identify elements that are commonly undesired or misinterpreted in generated images and mention them in the negative prompt.
+Quality Mention: Mention any undesired qualities or characteristics that should be avoided in the generated image.
+Specific Avoidances: Mention any specific features, styles, or elements that should be avoided in the generated image.
+By default, prompts are assumed to be 'positive' prompts, so only include the negative prompt words/undesireable traits in fields that say 'neg' or 'negative' in them.
+Example: For a seed prompt like "A fantasy warrior with a mystical sword", the LLM might generate:
+Prompt: "A high-resolution 4k fantasy warrior, adorned in intricate armor, wielding a mystical sword enveloped in a glowing aura, in a style reminiscent of artists like H.R. Giger and Yoshitaka Amano, with a dark, ethereal background."
+Negative Prompt: "flower, Facial Marking, nude, bad art, low detail, pencil drawing, plain background, grainy, low quality, watermark, signature, extra limbs, missing fingers, cropped."`;
 
 export async function GenerateXL(data: GenerateData) {
   const start = performance.now();
@@ -44,6 +56,7 @@ export async function GenerateFrame(
   characters: Character[],
   theme: string,
   setting: string,
+  negativePrompt: string,
   folder: string
 ) {
   try {
@@ -57,15 +70,13 @@ export async function GenerateFrame(
       );
     });
 
-    const finalPrompt = `HD picture of ${transformedPrompt} in the style of ${theme}. background setting: ${setting}`;
-    // const scale = 7.5;
-    // const steps =  50;
-    // const seed = 3465383516;
+    const finalPrompt = `${transformedPrompt} in the style of ${theme}. background setting: ${setting}`;
 
     const response = await axios.post(
       `http://${process.env.LOCAL_AI_SERVER}:8000/generate`,
       {
         prompt: finalPrompt,
+        negPrompt: negativePrompt,
       },
       {
         responseType: 'arraybuffer',
@@ -88,7 +99,7 @@ export async function GenerateFrame(
     );
     return fullPath;
   } catch (e) {
-    console.error(e);
+    RequestContext.getStore()?.logger.error(e);
     throw new ImageGenAPIError();
   }
 }

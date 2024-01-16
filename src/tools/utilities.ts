@@ -52,7 +52,7 @@ export function createVideoFromImagesAndAudio(
     // Set up complex filter graph
     let filterStr = '';
     for (let i = 0; i < images.length * 2; i += 2) {
-      filterStr += `[${i}:v]scale=512:512,setpts=PTS-STARTPTS[v${i / 2}];`;
+      filterStr += `[${i}:v]scale=1024:1024,setpts=PTS-STARTPTS[v${i / 2}];`;
       filterStr += `[${i + 1}:a]asetpts=PTS-STARTPTS[a${i / 2}];`;
     }
     filterStr += `[v0][a0]`;

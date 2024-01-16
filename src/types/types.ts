@@ -13,18 +13,19 @@ export type Transcript = {
 
 type StoryboardSpeaker = {
   id: number;
-  visual_description: string;
-  gender: string;
+  visualDescription: string;
+  gender: 'male' | 'female';
 };
 type StoryboardFrame = {
   speakerId: number;
   dialog: string;
-  visual_description: string;
+  visualDescription: string;
 };
 export type PrimaryStoryboardResponse = {
   name: string;
-  setting_description: string;
-  theme_visuals: string;
+  settingDescription: string;
+  themeVisuals: string;
+  negativePrompt: string;
   speakers: StoryboardSpeaker[];
   frames: StoryboardFrame[];
 };

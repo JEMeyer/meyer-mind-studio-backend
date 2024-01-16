@@ -1,4 +1,5 @@
 import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
+import { RequestContext } from '../middleware/context';
 
 const speechConfig = sdk.SpeechConfig.fromSubscription(
   process.env.SPEECH_KEY!,
@@ -54,9 +55,9 @@ const femaleVoices = enUS_Voices
 
 export function getRandomVoice(gender: string, voicesUsed: Set<string>) {
   const voices =
-    gender === 'Male'
-      ? maleVoices.filter(({ Name }) => voicesUsed.has(Name))
-      : femaleVoices.filter(({ Name }) => voicesUsed.has(Name));
+    gender.toLowerCase() === 'male'
+      ? maleVoices.filter(({ Name }) => !voicesUsed.has(Name))
+      : femaleVoices.filter(({ Name }) => !voicesUsed.has(Name));
   const randIndex = Math.floor(Math.random() * voices.length);
   return voices[randIndex].Name;
 }
@@ -67,36 +68,29 @@ export async function generateAudio(
   folder: string,
   index: string
 ) {
+  const start = performance.now();
   const audioPath = `${folder}/audio-${index}.wav`;
   const audioConfig = sdk.AudioConfig.fromAudioFileOutput(audioPath);
 
   speechConfig.speechSynthesisVoiceName = voiceName;
 
-  let synthesizer: sdk.SpeechSynthesizer | null = new sdk.SpeechSynthesizer(
-    speechConfig,
-    audioConfig
-  );
+  const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
   synthesizer?.speakTextAsync(
     text,
     (result) => {
-      if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-        console.log('synthesis finished.');
-      } else {
-        console.error(
-          'Speech synthesis canceled, ' +
-            result.errorDetails +
-            '\nDid you set the speech resource key and region values?'
-        );
+      if (result) {
+        RequestContext.getStore()?.logger.info(`Audio written to ${audioPath}`);
       }
       synthesizer?.close();
-      synthesizer = null;
+      const end = performance.now();
+      RequestContext.getStore()?.logger.info(
+        `MS STT took ${(end - start) / 1000} seconds`
+      );
     },
     (err) => {
-      console.trace('err - ' + err);
+      RequestContext.getStore()?.logger.error(err);
       synthesizer?.close();
-      synthesizer = null;
     }
   );
-  console.log('Now synthesizing to: ' + audioPath);
   return audioPath;
 }
