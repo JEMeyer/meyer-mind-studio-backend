@@ -31,7 +31,9 @@ export const getVideoById = async (videoId: string, userId?: string) => {
       SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, v.type, vs.total_votes, uv.value as user_vote
       FROM videos v
       LEFT JOIN vote_summary vs ON v.id = vs.id_value
-      LEFT JOIN votes uv ON v.id = uv.id_value AND uv.id_type = 1 AND uv.user_id = ${userId}
+      LEFT JOIN votes uv ON v.id = uv.id_value AND uv.id_type = 1 AND uv.user_id = ${
+        userId ?? '""'
+      }
       WHERE v.id = ${videoId};
     `;
 
