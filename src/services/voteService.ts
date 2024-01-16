@@ -68,41 +68,48 @@ export const getItemsWithUpvotes = async (
       : '';
 
   const offset = (pageNumber - 1) * 10;
+  let itemTables = ['videos', 'pictures'];
 
-  let itemTable;
-
-  switch (idType) {
-    case IDType.VIDEO:
-      itemTable = 'videos';
-      break;
-    case IDType.PICTURE:
-      itemTable = 'pictures';
-      break;
+  // If a specific type is requested, filter the tables array
+  if (idType === IDType.VIDEO) {
+    itemTables = ['videos'];
+  } else if (idType === IDType.PICTURE) {
+    itemTables = ['pictures'];
   }
 
-  const query = `
+  const queries = itemTables.map(
+    (table) => `
     WITH vote_summary AS (
       SELECT id_value, SUM(value) as total_votes
       FROM votes
-      WHERE id_type = ${idType}
+      WHERE id_type = ${
+        idType === IDType.VIDEO
+          ? 1
+          : idType === IDType.PICTURE
+          ? 2
+          : '1 OR id_type = 2'
+      }
       GROUP BY id_value
     )
     SELECT i.*, vs.total_votes, uv.value as user_vote
-    FROM ${itemTable} i
+    FROM ${table} i
     LEFT JOIN vote_summary vs ON i.id = vs.id_value
     LEFT JOIN votes uv ON i.id = uv.id_value ${`AND uv.user_id = ${
       userId ?? '""'
     }`}
     WHERE 1=1 ${timeFrameCondition} ${userFilterCondition} ${likedItemsOnlyCondition}
-    ORDER BY ${orderByVoteTime}
-    LIMIT 10 OFFSET ${offset};
-    `;
+  `
+  );
+
+  const fullQuery = `(${queries.join(
+    ') UNION ('
+  )}) ORDER BY ${orderByVoteTime} LIMIT 10 OFFSET ${offset};`;
 
   try {
-    return await selectQuery(query, []);
+    return await selectQuery(fullQuery, []);
   } catch (error) {
     RequestContext.getStore()?.logger.error(
-      `Error fetching items with query: "${query}". Error: ${error}`
+      `Error fetching items with query: "${fullQuery}". Error: ${error}`
     );
     throw new Error(`An error occurred while fetching items: ${error}`);
   }

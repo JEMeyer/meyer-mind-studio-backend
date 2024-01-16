@@ -9,7 +9,7 @@ import multer from 'multer';
 import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
-import { deleteFolder } from './tools/utilities';
+import { deleteFolder, isIdType } from './tools/utilities';
 import * as OpenAi from './services/openai';
 import * as LocalDiffusion from './services/localDiffusion';
 import * as Storyboard from './storyboard';
@@ -343,7 +343,7 @@ app.put('/vote', async (req: CustomRequest, res: Response) => {
   }
 });
 
-app.get('/videos', async (req: CustomRequest, res) => {
+app.get('/content', async (req: CustomRequest, res) => {
   try {
     const sorting =
       typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
@@ -352,6 +352,13 @@ app.get('/videos', async (req: CustomRequest, res) => {
     const filterByUser = req.query.userContentOnly === 'true';
     const likedItemsOnly = req.query.likedItems === 'true';
     const page = Number(req.query.page) || 1;
+    let contentType = null;
+    if (
+      typeof req.query.contentType === 'string' &&
+      isIdType(req.query.contentType)
+    ) {
+      contentType = req.query.contentType as IDType;
+    }
 
     const videos = await getItemsWithUpvotes(
       page,
@@ -360,40 +367,13 @@ app.get('/videos', async (req: CustomRequest, res) => {
       timeframe,
       filterByUser,
       likedItemsOnly,
-      IDType.VIDEO
+      contentType
     );
 
     res.json(videos);
   } catch (error) {
     RequestContext.getStore()?.logger.error('Error fetching videos:', error);
     res.status(500).send('An error occurred while fetching videos');
-  }
-});
-
-app.get('/pictures', async (req: CustomRequest, res) => {
-  try {
-    const sorting =
-      typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
-    const timeframe =
-      typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
-    const filterByUser = req.query.userContentOnly === 'true';
-    const likedItemsOnly = req.query.likedItems === 'true';
-    const page = Number(req.query.page) || 1;
-
-    const pictures = await getItemsWithUpvotes(
-      page,
-      sorting,
-      req.userId,
-      timeframe,
-      filterByUser,
-      likedItemsOnly,
-      IDType.PICTURE
-    );
-
-    res.json(pictures);
-  } catch (error) {
-    RequestContext.getStore()?.logger.error('Error fetching pictures:', error);
-    res.status(500).send('An error occurred while fetching pictures');
   }
 });
 

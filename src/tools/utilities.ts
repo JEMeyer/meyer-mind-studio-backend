@@ -11,7 +11,7 @@ ffmpeg.setFfmpegPath(process.env.FFMPEG_PATH || '');
 ffmpeg.setFfprobePath(process.env.FFPROBE_PATH || '');
 
 import os from 'os';
-import { Transcript } from '../types/types';
+import { IDType, Transcript } from '../types/types';
 import { FfmpegError } from './exceptions';
 const platform = os.platform();
 
@@ -214,11 +214,6 @@ export function safeStringify(obj: any) {
   });
 }
 
-export function todaysDateAsString() {
-  const date = new Date();
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months start at 0!
-  const dd = String(date.getDate()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}-${seconds}`;
+export function isIdType(value: any): value is IDType {
+  return Object.values(IDType).includes(value);
 }
