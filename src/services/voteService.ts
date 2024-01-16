@@ -97,7 +97,7 @@ export const getItemsWithUpvotes = async (
     SELECT * FROM (${queries.join(' UNION ')}) as unified
     ORDER BY
     ${
-      order === 'new'
+      likedContentOnly || order === 'new'
         ? 'created_at DESC'
         : `CASE WHEN total_votes IS NULL THEN 0 ELSE total_votes END DESC, created_at DESC`
     }
