@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import express, { NextFunction, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import fs from 'fs';
 import multer from 'multer';
@@ -36,6 +37,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Initialize express
 const app = express();
 const PORT = 8080;
+const server = createServer(app);
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -110,11 +112,11 @@ app.use(express.urlencoded({ extended: true }));
 // Start the server
 const startServer = async () => {
   try {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Error initializing the database:', error);
+    console.error('Error initializing the server:', error);
   }
 };
 
