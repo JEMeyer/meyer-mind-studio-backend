@@ -353,10 +353,7 @@ app.get('/content', async (req: CustomRequest, res) => {
     const likedItemsOnly = req.query.likedItems === 'true';
     const page = Number(req.query.page) || 1;
     let contentType = null;
-    if (
-      typeof req.query.contentType === 'string' &&
-      isIdType(req.query.contentType)
-    ) {
+    if (isIdType(req.query.contentType)) {
       contentType = req.query.contentType as IDType;
     }
 
