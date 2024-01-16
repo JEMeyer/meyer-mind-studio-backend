@@ -37,9 +37,19 @@ import { v4 as uuidv4 } from 'uuid';
 // Initialize express
 const app = express();
 const PORT = 8080;
+const LONG_TIMEOUT = 300 * 1000; // 300 seconds in milliseconds - chatgpt said this was chrome max
 const server = createServer(app);
 
+// Optional Middlewares
 const upload = multer({ storage: multer.memoryStorage() });
+const setTimeoutMiddleware = (
+  req: CustomRequest,
+  _res: Response,
+  next: NextFunction
+) => {
+  req.setTimeout(LONG_TIMEOUT);
+  next();
+};
 
 // static can just  be served
 app.use('/static', express.static('/usr/app/src/public'));
@@ -124,6 +134,7 @@ startServer();
 
 app.post(
   '/promptToStoryboard',
+  setTimeoutMiddleware,
   upload.none(),
   async (req: CustomRequest, res: Response) => {
     // Check if request body is empty
@@ -232,72 +243,76 @@ app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
   }
 });
 
-app.post('/promptToImage', async (req: CustomRequest, res: Response) => {
-  // Check if requeest body is empty
-  if (!Object.keys(req.body).length) {
-    return res.status(400).json({
-      message: 'Request body cannot be empty. ',
-    });
-  }
+app.post(
+  '/promptToImage',
+  setTimeoutMiddleware,
+  async (req: CustomRequest, res: Response) => {
+    // Check if requeest body is empty
+    if (!Object.keys(req.body).length) {
+      return res.status(400).json({
+        message: 'Request body cannot be empty. ',
+      });
+    }
 
-  try {
-    const prompt = req.body.prompt;
-    const negPrompt = req.body.negPrompt ?? '';
-    const scale = req.body.scale ?? 7.5;
-    const steps = req.body.steps ?? 20;
-    const seed = req.body.seed ?? 3465383516;
-
-    const response = await LocalDiffusion.GenerateXL({
-      prompt,
-      negPrompt,
-      scale,
-      steps,
-      seed,
-    });
-
-    // Convert ArrayBuffer to Buffer
-    const buffer = Buffer.from(response.data);
-    const filePath = `/usr/app/src/public/images/${todaysDateAsString()}_${uuidv4().substring(
-      0,
-      6
-    )}.png`;
-
-    // Save it to /static
     try {
-      await fs.promises.writeFile(filePath, buffer);
-      RequestContext.getStore()?.logger.info(`File saved: ${filePath}`);
+      const prompt = req.body.prompt;
+      const negPrompt = req.body.negPrompt ?? '';
+      const scale = req.body.scale ?? 7.5;
+      const steps = req.body.steps ?? 20;
+      const seed = req.body.seed ?? 3465383516;
+
+      const response = await LocalDiffusion.GenerateXL({
+        prompt,
+        negPrompt,
+        scale,
+        steps,
+        seed,
+      });
+
+      // Convert ArrayBuffer to Buffer
+      const buffer = Buffer.from(response.data);
+      const filePath = `/usr/app/src/public/images/${todaysDateAsString()}_${uuidv4().substring(
+        0,
+        6
+      )}.png`;
+
+      // Save it to /static
+      try {
+        await fs.promises.writeFile(filePath, buffer);
+        RequestContext.getStore()?.logger.info(`File saved: ${filePath}`);
+      } catch (err) {
+        RequestContext.getStore()?.logger.error(
+          `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
+        );
+      }
+
+      // Convert Buffer to Stream
+      const stream = Readable.from(buffer);
+
+      // Set the response headers
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=${response.fileName}`
+      );
+      res.setHeader('Content-Length', buffer.length);
+
+      // Pipe the stream to the response
+      stream.pipe(res);
     } catch (err) {
+      if (err instanceof ImageGenAPIError) {
+        res.status(500).statusMessage =
+          'Failed during image creation (invalid prompt detected).';
+      } else {
+        res.status(500).statusMessage = 'Failed with unknown error.';
+      }
       RequestContext.getStore()?.logger.error(
         `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
       );
+      res.send();
     }
-
-    // Convert Buffer to Stream
-    const stream = Readable.from(buffer);
-
-    // Set the response headers
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${response.fileName}`
-    );
-    res.setHeader('Content-Length', buffer.length);
-
-    // Pipe the stream to the response
-    stream.pipe(res);
-  } catch (err) {
-    if (err instanceof ImageGenAPIError) {
-      res.status(500).statusMessage =
-        'Failed during image creation (invalid prompt detected).';
-    } else {
-      res.status(500).statusMessage = 'Failed with unknown error.';
-    }
-    RequestContext.getStore()?.logger.error(
-      `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
-    );
-    res.send();
   }
-});
+);
 
 app.put('/vote', async (req: CustomRequest, res: Response) => {
   try {
