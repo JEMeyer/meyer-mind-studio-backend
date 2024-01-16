@@ -215,5 +215,5 @@ export function safeStringify(obj: any) {
 }
 
 export function isIdType(value: any): value is IDType {
-  return Object.values(IDType).includes(value);
+  return Object.values(IDType).includes(Number(value));
 }

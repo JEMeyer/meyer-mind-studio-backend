@@ -352,9 +352,10 @@ app.get('/content', async (req: CustomRequest, res) => {
     const filterByUser = req.query.userContentOnly === 'true';
     const likedItemsOnly = req.query.likedItems === 'true';
     const page = Number(req.query.page) || 1;
-    let contentType = null;
-    if (isIdType(req.query.contentType)) {
-      contentType = req.query.contentType as IDType;
+    let contentType: IDType | null = null;
+    const contentTypeQuery = Number(req.query.contentType);
+    if (!isNaN(contentTypeQuery) && isIdType(contentTypeQuery)) {
+      contentType = contentTypeQuery;
     }
 
     const videos = await getItemsWithUpvotes(
@@ -374,7 +375,7 @@ app.get('/content', async (req: CustomRequest, res) => {
   }
 });
 
-app.get('/videos/:id', async (req: CustomRequest, res) => {
+app.get('/video/:id', async (req: CustomRequest, res) => {
   try {
     const videoId = req.params.id;
 

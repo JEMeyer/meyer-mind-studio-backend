@@ -15,7 +15,7 @@ import { generateAudio, getRandomVoice } from './services/msCognitive';
 import { ChatCompletionTool } from 'openai/resources';
 
 const storyboard_prompt = `You are a storyboard creator. You create a movie scene with a name, setting, theme, speakers, and 6-12 frames. Return a JSON object that is described in the JSON schema included in this message. Each frame must include speakerId
-of the person speaking, brief R-rated dialog (must be at least 1 word but no more than 50 (hard limit at 200 characters) and do not include any curly braces in the spoken dialog.
+of the person speaking, brief R-rated dialog (must be at least 1 word but no more than 50 (hard limit at 200 characters) and do not include any curly braces in the spoken dialog. You need to put the curlybraces around the characters in the frame descriptions. I will looke for {1} and {2} for speaker 1 and speaker 2, respectively. I rely on the curly braces around the number for the replacements.
 Using the prompt, create information to properly describe a full movie arc (across a few scenes), and use this as the basis for the dialog. Think of interesting things that will happen as a result of the prompt.
 I will process your response through a JSON.decode(), so only reply with valid JSON in the form provided. Be sure to include at least 4 frames in the output, up to a max of 12. Focus on making the storyboard viral and entertaining. Prompt:
 `;

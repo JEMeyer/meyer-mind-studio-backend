@@ -15,7 +15,9 @@ export const authenticate = [
     // We want to flow through the auth for signed-in reqeusts so we can get the userId later.
     if (
       req.path.startsWith('/static') ||
-      (req.path.startsWith('/videos') && !authType)
+      (req.path.startsWith('/content') && !authType) ||
+      (req.path.startsWith('/video') && !authType) ||
+      (req.path.startsWith('/picture') && !authType)
     ) {
       return next();
     }

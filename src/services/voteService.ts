@@ -50,13 +50,6 @@ export const getItemsWithUpvotes = async (
     }
   };
 
-  const orderBy =
-    order === 'new'
-      ? 'i.created_at DESC'
-      : `CASE WHEN vs.total_votes IS NULL THEN 0 ELSE vs.total_votes END DESC, i.created_at DESC`;
-
-  const orderByVoteTime = likedContentOnly ? 'uv.last_modified DESC' : orderBy;
-
   const timeFrameCondition = timeFrameFilter(timeframe || '');
 
   const userFilterCondition =
@@ -79,31 +72,36 @@ export const getItemsWithUpvotes = async (
 
   const queries = itemTables.map(
     (table) => `
-    WITH vote_summary AS (
-      SELECT id_value, SUM(value) as total_votes
-      FROM votes
-      WHERE id_type = ${
-        idType === IDType.VIDEO
-          ? 1
-          : idType === IDType.PICTURE
-          ? 2
-          : '1 OR id_type = 2'
-      }
-      GROUP BY id_value
-    )
-    SELECT i.*, vs.total_votes, uv.value as user_vote
+    SELECT i.id, i.name, i.public_path, i.prompt, i.created_at, i.type,
+           vs.total_votes, uv.value as user_vote
     FROM ${table} i
-    LEFT JOIN vote_summary vs ON i.id = vs.id_value
-    LEFT JOIN votes uv ON i.id = uv.id_value ${`AND uv.user_id = ${
-      userId ?? '""'
-    }`}
-    WHERE 1=1 ${timeFrameCondition} ${userFilterCondition} ${likedItemsOnlyCondition}
-  `
+    LEFT JOIN (
+        SELECT id_value, SUM(value) as total_votes
+        FROM votes
+        WHERE id_type = ${
+          idType === IDType.VIDEO
+            ? 1
+            : idType === IDType.PICTURE
+            ? 2
+            : '1 OR id_type = 2'
+        }
+        GROUP BY id_value
+    ) vs ON i.id = vs.id_value
+    LEFT JOIN votes uv ON i.id = uv.id_value AND uv.user_id = ${
+      userId ? `'${userId}'` : '""'
+    }
+    WHERE 1=1 ${timeFrameCondition} ${userFilterCondition} ${likedItemsOnlyCondition}`
   );
 
-  const fullQuery = `(${queries.join(
-    ') UNION ('
-  )}) ORDER BY ${orderByVoteTime} LIMIT 10 OFFSET ${offset};`;
+  const fullQuery = `
+    SELECT * FROM (${queries.join(' UNION ')}) as unified
+    ORDER BY
+    ${
+      order === 'new'
+        ? 'created_at DESC'
+        : `CASE WHEN total_votes IS NULL THEN 0 ELSE total_votes END DESC, created_at DESC`
+    }
+    LIMIT 10 OFFSET ${offset};`;
 
   try {
     return await selectQuery(fullQuery, []);
