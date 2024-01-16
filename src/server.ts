@@ -9,12 +9,11 @@ import multer from 'multer';
 import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
-import { deleteFolder, todaysDateAsString } from './tools/utilities';
+import { deleteFolder } from './tools/utilities';
 import * as OpenAi from './services/openai';
 import * as LocalDiffusion from './services/localDiffusion';
 import * as Storyboard from './storyboard';
 
-import { Readable } from 'stream';
 import {
   CoquiAPIError,
   FfmpegError,
@@ -25,14 +24,11 @@ import { authenticate } from './middleware/authenticate';
 import { RequestContext } from './middleware/context';
 import { timerMiddleware } from './middleware/timer';
 import path from 'path';
-import { voteOnVideo } from './services/voteService';
-import {
-  addVideo,
-  getVideoById,
-  getVideosWithUpvotes,
-} from './services/videoService';
-import { CustomRequest } from './types/types';
-import { v4 as uuidv4 } from 'uuid';
+import { getItemsWithUpvotes, voteOnItem } from './services/voteService';
+import { addVideo, getVideoById } from './services/videoService';
+import { CustomRequest, IDType } from './types/types';
+import { addPicture, getPictureById } from './services/picturesService';
+import { Readable } from 'stream';
 
 // Initialize express
 const app = express();
@@ -271,34 +267,47 @@ app.post(
 
       // Convert ArrayBuffer to Buffer
       const buffer = Buffer.from(response.data);
-      const filePath = `/usr/app/src/public/images/${todaysDateAsString()}_${uuidv4().substring(
-        0,
-        6
-      )}.png`;
 
-      // Save it to /static
-      try {
-        await fs.promises.writeFile(filePath, buffer);
-        RequestContext.getStore()?.logger.info(`File saved: ${filePath}`);
-      } catch (err) {
-        RequestContext.getStore()?.logger.error(
-          `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
+      // TODO: update joebot to use  static routes too
+      if (req.header('Authorization')?.split(' ')[0] === 'Basic') {
+        // Convert Buffer to Stream
+        const stream = Readable.from(buffer);
+
+        // Set the response headers
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename=${response.fileName}`
         );
+        res.setHeader('Content-Length', buffer.length);
+
+        // Pipe the stream to the response
+        stream.pipe(res);
+      } else {
+        const filePath = `/usr/app/src/public/images/${response.fileName}`;
+
+        // Save it to /static
+        try {
+          await fs.promises.writeFile(filePath, buffer);
+          RequestContext.getStore()?.logger.info(`File saved: ${filePath}`);
+        } catch (err) {
+          RequestContext.getStore()?.logger.error(
+            `Error caught in /promtToImage with prompt '${req.body.prompt}': ${err}`
+          );
+        }
+
+        const publicPath = `/static/images/${response.fileName}`;
+
+        // Add to database
+        const picture = await addPicture(
+          publicPath,
+          prompt,
+          req.userId || 'unknown'
+        );
+
+        // Return the filename (to then use with /static route)
+        res.json(picture);
       }
-
-      // Convert Buffer to Stream
-      const stream = Readable.from(buffer);
-
-      // Set the response headers
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=${response.fileName}`
-      );
-      res.setHeader('Content-Length', buffer.length);
-
-      // Pipe the stream to the response
-      stream.pipe(res);
     } catch (err) {
       if (err instanceof ImageGenAPIError) {
         res.status(500).statusMessage =
@@ -322,10 +331,11 @@ app.put('/vote', async (req: CustomRequest, res: Response) => {
         message: 'Unable to determine userId.',
       });
     }
-    const videoId = req.body.videoId;
+    const idValue = req.body.idValue;
+    const idType = req.body.idType;
     const value = parseInt(req.body.value, 10);
 
-    await voteOnVideo(userId, videoId, value);
+    await voteOnItem(userId, idValue, idType, value);
     res.sendStatus(204); // return a 'no content' response to indicate success
   } catch (error) {
     RequestContext.getStore()?.logger.error('Error voting on video:', error);
@@ -340,22 +350,50 @@ app.get('/videos', async (req: CustomRequest, res) => {
     const timeframe =
       typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
     const filterByUser = req.query.userContentOnly === 'true';
-    const likedVideosOnly = req.query.likedVideos === 'true';
+    const likedItemsOnly = req.query.likedItems === 'true';
     const page = Number(req.query.page) || 1;
 
-    const videos = await getVideosWithUpvotes(
+    const videos = await getItemsWithUpvotes(
       page,
       sorting,
       req.userId,
       timeframe,
       filterByUser,
-      likedVideosOnly
+      likedItemsOnly,
+      IDType.VIDEO
     );
 
     res.json(videos);
   } catch (error) {
     RequestContext.getStore()?.logger.error('Error fetching videos:', error);
     res.status(500).send('An error occurred while fetching videos');
+  }
+});
+
+app.get('/pictures', async (req: CustomRequest, res) => {
+  try {
+    const sorting =
+      typeof req.query.sorting === 'string' ? req.query.sorting : 'top';
+    const timeframe =
+      typeof req.query.timeframe === 'string' ? req.query.timeframe : '';
+    const filterByUser = req.query.userContentOnly === 'true';
+    const likedItemsOnly = req.query.likedItems === 'true';
+    const page = Number(req.query.page) || 1;
+
+    const pictures = await getItemsWithUpvotes(
+      page,
+      sorting,
+      req.userId,
+      timeframe,
+      filterByUser,
+      likedItemsOnly,
+      IDType.PICTURE
+    );
+
+    res.json(pictures);
+  } catch (error) {
+    RequestContext.getStore()?.logger.error('Error fetching pictures:', error);
+    res.status(500).send('An error occurred while fetching pictures');
   }
 });
 
@@ -379,5 +417,28 @@ app.get('/videos/:id', async (req: CustomRequest, res) => {
   } catch (error) {
     RequestContext.getStore()?.logger.error('Error fetching video:', error);
     res.status(500).send('An error occurred while fetching video');
+  }
+});
+
+app.get('/picture/:id', async (req: CustomRequest, res) => {
+  try {
+    const pictureId = req.params.id;
+
+    if (!pictureId) {
+      res.status(400).send('Invalid picture ID');
+      return;
+    }
+
+    const picture = await getPictureById(pictureId, req.userId);
+
+    if (!picture) {
+      res.status(404).send('Picture not found');
+      return;
+    }
+
+    res.json(picture);
+  } catch (error) {
+    RequestContext.getStore()?.logger.error('Error fetching picture:', error);
+    res.status(500).send('An error occurred while fetching picture');
   }
 });

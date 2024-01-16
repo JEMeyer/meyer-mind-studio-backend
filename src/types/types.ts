@@ -33,3 +33,8 @@ export type PrimaryStoryboardResponse = {
 export interface CustomRequest extends Request {
   userId?: string;
 }
+
+export enum IDType {
+  VIDEO = 1,
+  PICTURE = 2,
+}
