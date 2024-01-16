@@ -1,7 +1,6 @@
 import mysql from 'mysql2/promise';
 import { env } from 'process';
 import { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
-import { RequestContext } from '../middleware/context';
 
 // Database connection pool configuration
 const poolConfig = {
@@ -21,8 +20,6 @@ async function selectQuery(
   sql: string,
   params: any[]
 ): Promise<RowDataPacket[]> {
-  RequestContext.getStore()?.logger.info('pool', pool);
-  RequestContext.getStore()?.logger.info('poolConfig', poolConfig);
   const connection = await pool.getConnection();
   try {
     const [rows] = await connection.query<RowDataPacket[]>(sql, params);

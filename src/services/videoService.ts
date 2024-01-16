@@ -1,4 +1,5 @@
 import { modificationQuery, selectQuery } from '../database/database';
+import { RequestContext } from '../middleware/context';
 import { PrimaryStoryboardResponse } from '../types/types';
 
 export const addVideo = async (
@@ -31,11 +32,11 @@ export const getVideosWithUpvotes = async (
   const timeFrameFilter = (timeframe: string) => {
     switch (timeframe) {
       case 'day':
-        return "AND v.created_at >= (NOW() - INTERVAL '1 day')";
+        return 'AND v.created_at >= (NOW() - INTERVAL 1 DAY)';
       case 'week':
-        return "AND v.created_at >= (NOW() - INTERVAL '1 week')";
+        return 'AND v.created_at >= (NOW() - INTERVAL 1 WEEK)';
       case 'month':
-        return "AND v.created_at >= (NOW() - INTERVAL '1 month')";
+        return 'AND v.created_at >= (NOW() - INTERVAL 1 MONTH)';
       case 'all-time':
       default:
         return '';
@@ -66,11 +67,13 @@ export const getVideosWithUpvotes = async (
             SELECT video_id, SUM(value) as total_votes
             FROM votes
             GROUP BY video_id
-        )
+            )
         SELECT v.id, v.public_path, v.prompt, v.created_at, v.name, vs.total_votes, uv.value as user_vote
         FROM videos v
         LEFT JOIN vote_summary vs ON v.id = vs.video_id
-        LEFT JOIN votes uv ON v.id = uv.video_id AND uv.user_id = ${userId}
+        LEFT JOIN votes uv ON v.id = uv.video_id ${`AND uv.user_id = ${
+          userId ?? '""'
+        }`}
         WHERE 1=1 ${timeFrameCondition} ${userFilterCondition} ${likedVideosOnlyCondition}
         ORDER BY ${orderByVoteTime}
         LIMIT 10 OFFSET ${offset};
@@ -79,6 +82,9 @@ export const getVideosWithUpvotes = async (
   try {
     return await selectQuery(query, []);
   } catch (error) {
+    RequestContext.getStore()?.logger.error(
+      `Error fetching videos with query: "${query}". Error: ${error}`
+    );
     throw new Error(`An error occurred while fetching videos: ${error}`);
   }
 };
