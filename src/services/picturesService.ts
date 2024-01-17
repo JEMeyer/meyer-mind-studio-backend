@@ -31,7 +31,7 @@ export const getPictureById = async (pictureId: string, userId?: string) => {
       LEFT JOIN votes uv ON p.id = uv.id_value AND uv.id_type = 1 AND uv.user_id = ${
         userId ?? '""'
       }
-      WHERE v.id = ${pictureId};
+      WHERE p.id = ${pictureId};
     `;
 
   try {
