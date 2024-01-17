@@ -75,19 +75,23 @@ export async function generateAudio(
   speechConfig.speechSynthesisVoiceName = voiceName;
 
   const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
-  synthesizer?.speakTextAsync(
-    text,
-    () => {
-      synthesizer?.close();
-      const end = performance.now();
-      RequestContext.getStore()?.logger.info(
-        `MS STT took ${(end - start) / 1000} seconds`
-      );
-    },
-    (err) => {
-      RequestContext.getStore()?.logger.error(err);
-      synthesizer?.close();
-    }
-  );
+  await new Promise<void>((resolve, reject) => {
+    synthesizer.speakTextAsync(
+      text,
+      () => {
+        synthesizer.close();
+        const end = performance.now();
+        RequestContext.getStore()?.logger.info(
+          `MS STT took ${(end - start) / 1000} seconds`
+        );
+        resolve();
+      },
+      (err) => {
+        RequestContext.getStore()?.logger.error(err);
+        synthesizer.close();
+        reject(err);
+      }
+    );
+  });
   return audioPath;
 }
