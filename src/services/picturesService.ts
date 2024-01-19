@@ -25,7 +25,7 @@ export const getPictureById = async (pictureId: string, userId?: string) => {
           WHERE id_type = 2
           GROUP BY id_value
       )
-      SELECT p.id, p.public_path, p.prompt, p.created_at, p.type, vs.total_votes, uv.value as user_vote
+      SELECT p.id, p.name, p.public_path, p.prompt, p.created_at, p.type, vs.total_votes, uv.value as user_vote
       FROM pictures p
       LEFT JOIN vote_summary vs ON p.id = vs.id_value
       LEFT JOIN votes uv ON p.id = uv.id_value AND uv.id_type = 1 AND uv.user_id = ${
