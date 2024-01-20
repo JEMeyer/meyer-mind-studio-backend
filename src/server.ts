@@ -256,6 +256,7 @@ app.post(
       const scale = req.body.scale ?? 7.5;
       const steps = req.body.steps ?? 20;
       const seed = req.body.seed ?? 3465383516;
+      const name = req.body.name ?? '';
 
       const response = await LocalDiffusion.GenerateXL({
         prompt,
@@ -284,6 +285,7 @@ app.post(
         // Pipe the stream to the response
         stream.pipe(res);
       } else {
+        const pictureName = `${name}`;
         const filePath = `/usr/app/src/public/images/${response.fileName}`;
 
         // Save it to /static
@@ -301,7 +303,8 @@ app.post(
         // Add to database
         const picture = await addPicture(
           publicPath,
-          prompt,
+          `POS: ${prompt} / NEG: ${negPrompt}`,
+          pictureName,
           req.userId || 'unknown'
         );
 

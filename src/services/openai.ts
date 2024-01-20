@@ -87,6 +87,7 @@ const upscalerInstructions = `${ImageGenBestPractices} Use the function "imageGe
 interface UpscalerResponse {
   prompt: string;
   negPrompt: string;
+  name: string;
 }
 
 export async function GenerateImagePrompt(prompt: string) {
@@ -97,7 +98,7 @@ export async function GenerateImagePrompt(prompt: string) {
       function: {
         name: 'imageGeneratorPromptUpscaler',
         description:
-          'Takes in a single prompt and generates an "upscaled" prompt and a negative prompt for image generation using a diffusion model.',
+          'Takes in a single prompt and generates an "upscaled" prompt, a negative prompt, and a name for image generation using a diffusion model.',
         parameters: {
           type: 'object',
           properties: {
@@ -111,8 +112,13 @@ export async function GenerateImagePrompt(prompt: string) {
               description:
                 'A negative prompt conditions the model to not include things in an image, and it can be used to improve image quality or modify an image. For example, you can improve image quality by including negative prompts like “poor details” or “blurry” to encourage the model to generate a higher quality image. Or you can modify an image by specifying things to exclude from an image.',
             },
+            name: {
+              type: 'string',
+              description:
+                '1-3 words that describe the image to act as a name for the picture',
+            },
           },
-          required: ['prompt', 'negPrompt'],
+          required: ['prompt', 'negPrompt', 'name'],
         },
       },
     },
@@ -128,7 +134,7 @@ export async function GenerateImagePrompt(prompt: string) {
   );
   const results: UpscalerResponse = JSON.parse(
     (response.tool_calls && response.tool_calls[0].function.arguments) ??
-      `{prompt:'${prompt}',negPrompt:''}`
+      `{prompt:'${prompt}',negPrompt:'',name:''}`
   );
   return results;
 }

@@ -3,11 +3,12 @@ import { modificationQuery, selectQuery } from '../database/database';
 export const addPicture = async (
   publicPath: string,
   prompt: string,
+  name: string,
   userId: string
 ) => {
   const sql =
-    'INSERT INTO pictures (public_path, prompt, created_by) VALUES (?, ?, ?);';
-  const params = [publicPath, prompt, userId];
+    'INSERT INTO pictures (public_path, prompt, name, created_by) VALUES (?, ?, ?, ?);';
+  const params = [publicPath, prompt, name, userId];
 
   try {
     const result = await modificationQuery(sql, params);
