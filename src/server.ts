@@ -257,14 +257,18 @@ app.post(
       const steps = req.body.steps ?? 20;
       const seed = req.body.seed ?? 3465383516;
       const name = req.body.name ?? '';
+      const secondaryServer = req.body.secondaryServer ?? false;
 
-      const response = await LocalDiffusion.GenerateXL({
-        prompt,
-        negPrompt,
-        scale,
-        steps,
-        seed,
-      });
+      const response = await LocalDiffusion.GenerateXL(
+        {
+          prompt,
+          negPrompt,
+          scale,
+          steps,
+          seed,
+        },
+        secondaryServer
+      );
 
       // Convert ArrayBuffer to Buffer
       const buffer = Buffer.from(response.data);
