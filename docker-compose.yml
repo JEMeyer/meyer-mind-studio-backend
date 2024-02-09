@@ -8,6 +8,7 @@ services:
       - '12400:8080'
     volumes:
       - backend-public-data:/usr/app/src/public
+    restart: unless-stopped
 
 volumes:
   backend-public-data:
