@@ -25,14 +25,10 @@ Example: For a seed prompt like "A fantasy warrior with a mystical sword", the L
 Prompt: "A high-resolution 4k fantasy warrior, adorned in intricate armor, wielding a mystical sword enveloped in a glowing aura, in a style reminiscent of artists like H.R. Giger and Yoshitaka Amano, with a dark, ethereal background."
 Negative Prompt: "flower, Facial Marking, nude, bad art, low detail, pencil drawing, plain background, grainy, low quality, watermark, signature, extra limbs, missing fingers, cropped."`;
 
-export async function GenerateXL(data: GenerateData, secondaryServer = false) {
+export async function GenerateXL(data: GenerateData) {
   const start = performance.now();
   const response = await axios.post(
-    `http://${
-      secondaryServer
-        ? process.env.LOCAL_SECONDARY_AI_SERVER
-        : process.env.LOCAL_AI_SERVER
-    }:8000/generate`,
+    `http://${process.env.IMAGE_AI_SERVER}:8000/generate`,
     {
       prompt: data.prompt,
       negPrompt: data.negPrompt,
@@ -77,7 +73,7 @@ export async function GenerateFrame(
     const finalPrompt = `${transformedPrompt} in the style of ${theme}. background setting: ${setting}`;
 
     const response = await axios.post(
-      `http://${process.env.LOCAL_AI_SERVER}:8000/generate`,
+      `http://${process.env.IMAGE_AI_SERVER}:8000/generate`,
       {
         prompt: finalPrompt,
         negPrompt: negativePrompt,

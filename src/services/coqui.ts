@@ -1,18 +1,30 @@
 import axios from 'axios';
+import fs from 'fs';
 import { RequestContext } from '../middleware/context';
 import { CoquiAPIError } from '../tools/exceptions';
-import { downloadFile, isEnumKey } from '../tools/utilities';
+import { isEnumKey } from '../tools/utilities';
 
-type Speakers = {
-  [name: string]: {
-    speaker_embedding: number[];
-    gpt_cond_latent: number[][];
-  };
-};
+const coquiUrlBase = process.env.COQUI_URL_BASE;
+const coquiUrlPorts: string[] = process.env.COQUI_URL_PORTS?.split(',') ?? [];
 
-let SPEAKERS: Speakers = {};
+// Initialize the current index for round-robin
+let currentIndex = 0;
 
-enum Language {
+function getNextUrl(): string {
+  // Return the next URL in the array and increment the current index
+  const port = coquiUrlPorts[currentIndex];
+  currentIndex = (currentIndex + 1) % coquiUrlPorts.length;
+  return `${coquiUrlBase}:${port}`;
+}
+
+interface Speaker {
+  speaker_embedding: number[];
+  gpt_cond_latent: number[][];
+}
+
+let SPEAKERS: Record<string, Speaker> = {};
+
+export enum Language {
   'English' = 'en',
   'Spanish' = 'es',
   'French' = 'fr',
@@ -32,8 +44,75 @@ enum Language {
   'Hindi' = 'hi',
 }
 
-export function getRandomVoice(_gender: string, voicesUsed: Set<string>) {
-  const voices = Object.keys(SPEAKERS).filter((name) => !voicesUsed.has(name));
+const maleVoices = [
+  'Andrew Chipper',
+  'Badr Odhiambo',
+  'Dionisio Schuyler',
+  'Royston Min',
+  'Viktor Eka',
+  'Abrahan Mack',
+  'Adde Michal',
+  'Baldur Sanjin',
+  'Craig Gutsy',
+  'Damien Black',
+  'Gilberto Mathias',
+  'Ilkin Urbano',
+  'Kazuhiko Atallah',
+  'Ludvig Milivoj',
+  'Suad Qasim',
+  'Torcull Diarmuid',
+  'Viktor Menelaos',
+  'Zacharie Aimilios',
+  'Nova Hogarth',
+  'Filip Trauve',
+  'Damjan Chapman',
+  'Wulf Carlevaro',
+  'Aaron Dreschner',
+  'Kumar Dahl',
+  'Eugenio Mataracı',
+  'Ferran Simen',
+  'Xavier Hayasaka',
+  'Luis Moray',
+  'Marcos Rudaski',
+];
+
+const femaleVoices = [
+  'Claribel Dervla',
+  'Daisy Studious',
+  'Gracie Wise',
+  'Tammie Ema',
+  'Alison Dietlinde',
+  'Ana Florence',
+  'Annmarie Nele',
+  'Asya Anara',
+  'Brenda Stern',
+  'Gitta Nikolina',
+  'Henriette Usha',
+  'Sofia Hellen',
+  'Tammy Grit',
+  'Tanja Adelina',
+  'Vjollca Johnnie',
+  'Maja Ruoho',
+  'Uta Obando',
+  'Lidiya Szekeres',
+  'Chandra MacFarland',
+  'Szofi Granger',
+  'Camilla Holmström',
+  'Lilya Stainthorpe',
+  'Zofija Kendrick',
+  'Narelle Moon',
+  'Barbora MacLean',
+  'Alexandra Hisakawa',
+  'Alma María',
+  'Rosemary Okafor',
+  'Ige Behringer',
+];
+
+export function getRandomVoice(gender: string, voicesUsed: Set<string>) {
+  const voices =
+    gender.toLowerCase() === 'male'
+      ? maleVoices.filter((name) => !voicesUsed.has(name))
+      : femaleVoices.filter((name) => !voicesUsed.has(name));
   const randIndex = Math.floor(Math.random() * voices.length);
   return voices[randIndex];
 }
@@ -43,8 +122,8 @@ function removeSpecialChars(str: string) {
 }
 
 type CreateSoundSampleProps = {
-  folder: string;
-  index: string;
+  folder?: string;
+  index?: string;
   language: Language;
   text: string;
   voiceId: string;
@@ -65,10 +144,9 @@ export async function CreateSoundSample({
 
   const options = {
     method: 'POST',
-    url: `https://${process.env.COQUI_URL}/tts`,
+    url: `${getNextUrl()}/tts`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
     },
     data: {
       speaker_embedding: speaker.speaker_embedding,
@@ -79,10 +157,11 @@ export async function CreateSoundSample({
   };
   try {
     const response = await axios.request(options);
-    const audio_url = response.data.audio_url;
-
     const audioPath = `${folder}/audio-${index}.wav`;
-    await downloadFile(audio_url, audioPath);
+    await fs.promises.writeFile(
+      audioPath,
+      Buffer.from(response.data, 'base64')
+    );
     const end = performance.now();
     RequestContext.getStore()?.logger.info(
       `Coqui CreateSoundSample took ${(end - start) / 1000} seconds`
@@ -95,8 +174,6 @@ export async function CreateSoundSample({
 }
 
 export async function CreateSoundSampleStream({
-  folder,
-  index,
   language,
   text,
   voiceId,
@@ -109,10 +186,9 @@ export async function CreateSoundSampleStream({
 
   const options = {
     method: 'POST',
-    url: `https://${process.env.COQUI_URL}/tts_stream`,
+    url: `${getNextUrl()}/tts_stream`,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.COQUI_API_KEY}`,
     },
     data: {
       speaker_embedding: speaker.speaker_embedding,
@@ -125,15 +201,38 @@ export async function CreateSoundSampleStream({
   };
   try {
     const response = await axios.request(options);
-    const audio_url = response.data.audio_url;
-
-    const audioPath = `${folder}/audio-${index}.wav`;
-    await downloadFile(audio_url, audioPath);
     const end = performance.now();
     RequestContext.getStore()?.logger.info(
-      `Coqui CreateSoundSample took ${(end - start) / 1000} seconds`
+      `Coqui CreateSoundSampleStream first chunk took ${
+        (end - start) / 1000
+      } seconds`
     );
-    return audioPath;
+    return response.data.readablStream;
+  } catch (e) {
+    console.error(e);
+    throw new CoquiAPIError();
+  }
+}
+
+async function fetchStudioSpeakers() {
+  const start = performance.now();
+
+  const options = {
+    method: 'GET',
+    url: `${getNextUrl()}/studio_speakers`,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  };
+
+  try {
+    const response = await axios.request(options);
+    const end = performance.now();
+    RequestContext.getStore()?.logger.info(
+      `Coqui PopulatSpeakerList took ${(end - start) / 1000} seconds`
+    );
+
+    return response.data as Record<string, Speaker>;
   } catch (e) {
     console.error(e);
     throw new CoquiAPIError();
@@ -141,25 +240,5 @@ export async function CreateSoundSampleStream({
 }
 
 export async function PopulateSpeakerList() {
-  const start = performance.now();
-
-  const options = {
-    method: 'GET',
-    url: `https://${process.env.COQUI_URL}/studio_speakers`,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-  try {
-    const response = await axios.request(options);
-    SPEAKERS = response.data as Speakers;
-
-    const end = performance.now();
-    RequestContext.getStore()?.logger.info(
-      `Coqui PopulatSpeakerList took ${(end - start) / 1000} seconds`
-    );
-  } catch (e) {
-    console.error(e);
-    throw new CoquiAPIError();
-  }
+  SPEAKERS = await fetchStudioSpeakers();
 }
