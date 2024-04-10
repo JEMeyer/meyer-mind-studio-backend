@@ -19,6 +19,13 @@ export class OpenAIAPIError extends Error {
     this.name = 'OpenAIAPIError';
   }
 }
+export class OllamaAPIError extends Error {
+  constructor(msg = '') {
+    super(msg);
+    Object.setPrototypeOf(this, OllamaAPIError.prototype);
+    this.name = 'OllamaAPIError';
+  }
+}
 export class FfmpegError extends Error {
   constructor(msg = '') {
     super(msg);

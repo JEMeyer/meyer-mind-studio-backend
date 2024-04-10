@@ -10,15 +10,12 @@ import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
 import { deleteFolder, isIdType } from './tools/utilities';
-import * as OpenAi from './services/openai';
-import * as LocalDiffusion from './services/localDiffusion';
-import * as Storyboard from './storyboard';
 
 import {
   CoquiAPIError,
   FfmpegError,
-  OpenAIAPIError,
   ImageGenAPIError,
+  OllamaAPIError,
 } from './tools/exceptions';
 import { authenticate } from './middleware/authenticate';
 import { RequestContext } from './middleware/context';
@@ -29,6 +26,10 @@ import { addVideo, getVideoById } from './services/videoService';
 import { CustomRequest, IDType } from './types/types';
 import { addPicture, getPictureById } from './services/picturesService';
 import { Readable } from 'stream';
+import { PopulateSpeakerList } from './services/coqui';
+import { GenerateImagePrompt } from './services/ollama';
+import { GenerateStoryboard } from './storyboard';
+import { GenerateXL } from './services/localDiffusion';
 
 // Initialize express
 const app = express();
@@ -118,6 +119,7 @@ app.use(express.urlencoded({ extended: true }));
 // Start the server
 const startServer = async () => {
   try {
+    await PopulateSpeakerList();
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
@@ -143,8 +145,7 @@ app.post(
     try {
       const prompt = req.body.prompt;
 
-      const { outputVideo, gpt_output } =
-        await Storyboard.GenerateStoryboard(prompt);
+      const { outputVideo, gpt_output } = await GenerateStoryboard(prompt);
       // Extract the file name and parent directory using path.basename() and path.dirname()
       const uuid = path.basename(path.dirname(outputVideo));
       const fileName = path.basename(outputVideo);
@@ -189,7 +190,7 @@ app.post(
       if (err instanceof ImageGenAPIError) {
         res.status(500).statusMessage =
           'Failed during image creation (invalid prompt detected).';
-      } else if (err instanceof OpenAIAPIError) {
+      } else if (err instanceof OllamaAPIError) {
         res.status(500).statusMessage = 'Failed during GPT calls.';
       } else if (err instanceof CoquiAPIError) {
         res.status(500).statusMessage = 'Failed during voice creation.';
@@ -218,7 +219,7 @@ app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
     // Use object destructuring to get name and age
     const prompt = req.body.prompt;
 
-    const gpt_prompt = await OpenAi.GenerateImagePrompt(prompt);
+    const gpt_prompt = await GenerateImagePrompt(prompt);
 
     if (gpt_prompt.negPrompt === '')
       RequestContext.getStore()?.logger.error(
@@ -227,7 +228,7 @@ app.post('/promptToImagePrompt', async (req: CustomRequest, res: Response) => {
 
     res.json(gpt_prompt);
   } catch (err) {
-    if (err instanceof OpenAIAPIError) {
+    if (err instanceof OllamaAPIError) {
       res.status(500).statusMessage = 'Failed during GPT calls.';
     } else {
       res.status(500).statusMessage = 'Failed with unknown error.';
@@ -257,18 +258,14 @@ app.post(
       const steps = req.body.steps ?? 20;
       const seed = req.body.seed ?? 3465383516;
       const name = req.body.name ?? '';
-      const secondaryServer = req.body.secondaryServer ?? false;
 
-      const response = await LocalDiffusion.GenerateXL(
-        {
-          prompt,
-          negPrompt,
-          scale,
-          steps,
-          seed,
-        },
-        secondaryServer
-      );
+      const response = await GenerateXL({
+        prompt,
+        negPrompt,
+        scale,
+        steps,
+        seed,
+      });
 
       // Convert ArrayBuffer to Buffer
       const buffer = Buffer.from(response.data);
