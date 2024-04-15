@@ -27,9 +27,10 @@ import { CustomRequest, IDType } from './types/types';
 import { addPicture, getPictureById } from './services/picturesService';
 import { Readable } from 'stream';
 import { PopulateSpeakerList } from './services/coqui';
-import { GenerateImagePrompt } from './services/ollama';
+import { GenerateImagePrompt, chat, generate } from './services/ollama';
 import { GenerateStoryboard } from './storyboard';
 import { GenerateXL } from './services/localDiffusion';
+import { ChatRequest, GenerateRequest } from 'ollama';
 
 // Initialize express
 const app = express();
@@ -326,6 +327,28 @@ app.post(
     }
   }
 );
+
+app.post('/chat', async (req, res) => {
+  try {
+    const request: ChatRequest = req.body;
+    const response = await chat(request);
+    res.json(response);
+  } catch (error) {
+    console.error('Error in /chat endpoint:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/generate', async (req, res) => {
+  try {
+    const request: GenerateRequest = req.body;
+    const response = await generate(request);
+    res.json(response);
+  } catch (error) {
+    console.error('Error in /generate endpoint:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 app.put('/vote', async (req: CustomRequest, res: Response) => {
   try {
