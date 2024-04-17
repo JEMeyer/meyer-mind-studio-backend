@@ -31,6 +31,7 @@ import { GenerateImagePrompt, chat, generate } from './services/ollama';
 import { GenerateStoryboard } from './storyboard';
 import { GenerateXL } from './services/localDiffusion';
 import { ChatRequest, GenerateRequest } from 'ollama';
+import { perplexityChat } from './services/perplexity';
 
 // Initialize express
 const app = express();
@@ -346,6 +347,25 @@ app.post('/generate', async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('Error in /generate endpoint:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/perplexity', async (req: CustomRequest, res: Response) => {
+  // Check if request body is empty
+  if (!Object.keys(req.body).length) {
+    return res.status(400).json({
+      message: 'Request body cannot be empty',
+    });
+  }
+
+  try {
+    const prompt = String(req.body.prompt);
+    const response = await perplexityChat({ query: prompt });
+    res.json(response);
+  } catch (error) {
+    RequestContext.getStore()?.logger.error('Error calling perplexity:', error);
+    console.error('Error in /perplexity endpoint:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
