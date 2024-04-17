@@ -21,7 +21,7 @@ export async function perplexityChat({
       messages: [
         {
           role: 'system',
-          content: `Provide concise, relevant information for the user's question using the most up-to-date information available.`,
+          content: `Provide relevant information for the user's question using the most up-to-date information available. This is the only time the user is able to get any information for this, so be sure to always return plenty of context, even if you have to guess the intent in order to do a more in depth search.`,
         },
         { role: 'user', content: query },
       ],
