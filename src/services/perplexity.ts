@@ -19,7 +19,10 @@ export async function perplexityChat({
     data: {
       model,
       messages: [
-        { role: 'system', content: 'Be precise and concise.' },
+        {
+          role: 'system',
+          content: `Provide concise, relevant information for the user's question using the most up-to-date information available.`,
+        },
         { role: 'user', content: query },
       ],
     },
