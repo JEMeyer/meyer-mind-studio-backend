@@ -3,7 +3,7 @@ import { RequestContext } from '../middleware/context';
 
 export async function perplexityChat({
   query,
-  model = 'sonar-small-online',
+  model = 'llama-3-sonar-small-32k-online',
 }: {
   query: string;
   model?: string;
