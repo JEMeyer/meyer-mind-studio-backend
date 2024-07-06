@@ -7,8 +7,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install PM2
-RUN npm install -g pm2
+# Enable pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Builder stage
 FROM base AS builder
@@ -16,14 +16,17 @@ FROM base AS builder
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy the package.json and package-lock.json files and the application source code to the working directory
+# Copy package.json and pnpm-lock.yaml
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy the rest of the project files
 COPY . .
 
-# Install the application dependencies
-RUN npm install
-
 # Build the TypeScript code to JavaScript
-RUN npm run build
+RUN pnpm run build
 
 # Final runtime image
 FROM base
@@ -31,20 +34,17 @@ FROM base
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy the package.json and package-lock.json files from the builder image
-COPY --from=builder /usr/src/app/package*.json ./
+# Copy the package.json and pnpm-lock.yaml files from the builder image
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 
 # Copy the built JavaScript files from the builder image
 COPY --from=builder /usr/src/app/dist ./dist
 
-# Create the public directory
-RUN mkdir -p /usr/src/app/public
-
-# Install the application dependencies
-RUN npm ci --production
+# Install production dependencies
+RUN pnpm install --prod --frozen-lockfile
 
 # Expose the port your application listens on
 EXPOSE 8080
 
 # Start the application
-CMD ["pm2-runtime", "dist/server.js" , "-i", "4"]
+CMD ["node", "dist/server.js"]
