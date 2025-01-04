@@ -124,7 +124,15 @@ const startServer = async () => {
       console.log(`Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('Error initializing the server:', error);
+    if (error instanceof CoquiAPIError) {
+      console.warn("Couldn't talk to coqui API:", error.message);
+      // Continue with the server starting - if it happens again we'll crash as expected
+      server.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    } else {
+      console.error('Error initializing the server:', error);
+    }
   }
 };
 
