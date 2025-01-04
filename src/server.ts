@@ -5,7 +5,6 @@ import express, { NextFunction, Response } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import fs from 'fs';
-import multer from 'multer';
 import { createLoggerWithUserId } from './middleware/logger';
 import morgan from 'morgan';
 
@@ -40,7 +39,6 @@ const LONG_TIMEOUT = 300 * 1000; // 300 seconds in milliseconds - chatgpt said t
 const server = createServer(app);
 
 // Optional Middlewares
-const upload = multer({ storage: multer.memoryStorage() });
 const setTimeoutMiddleware = (
   req: CustomRequest,
   _res: Response,
@@ -135,7 +133,6 @@ startServer();
 app.post(
   '/promptToStoryboard',
   setTimeoutMiddleware,
-  upload.none(),
   async (req: CustomRequest, res: Response) => {
     // Check if request body is empty
     if (!Object.keys(req.body).length) {
