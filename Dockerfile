@@ -32,7 +32,7 @@ FROM base
 WORKDIR /usr/src/app
 
 # Copy the package.json and yarn.lock files from the builder image
-COPY --from=builder /app/package.json /app/yarn.lock ./
+COPY --from=builder /usr/src/app/package.json /usr/src/app/yarn.lock ./
 
 # Copy the built JavaScript files from the builder image
 COPY --from=builder /usr/src/app/dist ./dist
