@@ -13,8 +13,8 @@ FROM base AS builder
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json and pnpm-lock.yaml
-COPY package.json yarn-lock.yaml ./
+# Copy package.json and pnpm.lock
+COPY package.json yarn.lock ./
 
 # Install dependencies
 RUN yarn install --frozen-lockfile
@@ -31,8 +31,8 @@ FROM base
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy the package.json and yarn-lock.yaml files from the builder image
-COPY --from=builder /app/package.json /app/yarn-lock.yaml ./
+# Copy the package.json and yarn.lock files from the builder image
+COPY --from=builder /app/package.json /app/yarn.lock ./
 
 # Copy the built JavaScript files from the builder image
 COPY --from=builder /usr/src/app/dist ./dist
